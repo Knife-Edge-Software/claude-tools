@@ -113,12 +113,11 @@ Domain knowledge included:
 
 ## Typical Workflow
 
-1. **Find work**: Check assigned issues or browse open issues
-2. **Plan**: `/ke:plan 42` - Create implementation plan
-3. **Start work**: `/ke:branchfix 42` - Create worktree and implement
-4. **Review**: Claude asks for review before finishing
-5. **Create PR**: `/ke:pr 42` - Push and create pull request
-6. **Close**: `/ke:close 42` - Merge and cleanup (after PR approved)
+1. **Plan**: `/ke:plan 42` - Create implementation plan
+2. **Start work**: `/ke:branchfix 42` - Create worktree and implement
+3. **Review**: Claude asks for review before finishing
+4. **Close**: `/ke:close 42` - Merge and cleanup
+5. *(Optional)* **Create PR**: `/ke:pr 42` - If you need a formal review
 
 Or for simpler changes without worktrees:
 1. `/ke:plan 42`

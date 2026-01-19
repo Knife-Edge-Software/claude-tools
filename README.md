@@ -6,17 +6,27 @@ A Claude Code plugin for the Knife Edge Software team providing issue management
 
 ```bash
 # Clone the plugin to your Claude plugins directory
-git clone https://github.com/Knife-Edge-Software/claude-tools.git ~/.claude/plugins/ke
-
-# Run setup to enable LSP support
-~/.claude/plugins/ke/setup.sh
-
-# Restart Claude Code for changes to take effect
+git clone https://github.com/Knife-Edge-Software/claude-tools.git %USERPROFILE%\.claude\plugins\ke
 ```
+
+Then run the setup script:
+
+```powershell
+# PowerShell (recommended on Windows)
+~\.claude\plugins\ke\setup.ps1
+
+# Or using Node.js (cross-platform)
+node ~\.claude\plugins\ke\setup.js
+
+# Or Git Bash
+~/.claude/plugins/ke/setup.sh
+```
+
+Restart Claude Code for changes to take effect.
 
 ## Setup Script
 
-The `setup.sh` script configures Claude Code with LSP support for our tech stack:
+The setup script configures Claude Code with LSP support for our tech stack:
 
 - **rust-analyzer-lsp** - Rust (Tauri backends, tools)
 - **typescript-lsp** - TypeScript/JavaScript (frontends)
@@ -27,16 +37,17 @@ The `setup.sh` script configures Claude Code with LSP support for our tech stack
 
 The language servers must be installed on your system:
 
-```bash
+```powershell
 # Rust (via rustup)
 rustup component add rust-analyzer
 
 # TypeScript
 npm install -g typescript-language-server typescript
 
-# C++ (Windows - install LLVM/clangd, or via Visual Studio)
-# macOS: brew install llvm
-# Linux: sudo apt install clangd
+# C++ - Install one of:
+#   - Visual Studio with C++ workload (includes clangd)
+#   - LLVM: https://releases.llvm.org/ (includes clangd)
+#   - winget install LLVM.LLVM
 ```
 
 ## Commands
@@ -130,7 +141,7 @@ When you need a formal PR review:
 - [Claude Code](https://claude.ai/code) installed
 - [GitHub CLI](https://cli.github.com/) (`gh`) authenticated
 - Git 2.x+
-- Language servers (see Setup Script section)
+- Language servers (see Prerequisites)
 
 ## Contributing
 

@@ -1,0 +1,14 @@
+{
+  "name": "knife-edge",
+  "owner": {
+    "name": "Knife Edge Software"
+  },
+  "plugins": [
+    {
+      "name": "ke",
+      "source": "./plugins/ke",
+      "description": "Issue management commands for GitHub",
+      "version": "1.0.0"
+    }
+  ]
+}

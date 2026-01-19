@@ -22,15 +22,16 @@ $plugins = @{
     "typescript-lsp@claude-plugins-official" = $true
     "clangd-lsp@claude-plugins-official" = $true
     "context7@claude-plugins-official" = $true
-    "ke@knife-edge" = $true
 }
 
 # Load or create settings
 $settings = @{}
 if (Test-Path $settingsPath) {
     try {
-        $content = Get-Content $settingsPath -Raw
+        $content = Get-Content $settingsPath -Raw -Encoding UTF8
         if ($content) {
+            # Remove BOM if present
+            $content = $content -replace '^\xEF\xBB\xBF', ''
             $settings = $content | ConvertFrom-Json -AsHashtable
         }
         Write-Host "Loaded existing settings.json"
@@ -45,12 +46,6 @@ if (-not $settings.ContainsKey("enabledPlugins")) {
     $settings["enabledPlugins"] = @{}
 }
 
-# Ensure extraKnownMarketplaces exists and add knife-edge
-if (-not $settings.ContainsKey("extraKnownMarketplaces")) {
-    $settings["extraKnownMarketplaces"] = @{}
-}
-$settings["extraKnownMarketplaces"]["knife-edge"] = "https://github.com/Knife-Edge-Software/claude-tools"
-
 # Add plugins
 $added = 0
 $existing = 0
@@ -63,11 +58,10 @@ foreach ($plugin in $plugins.Keys) {
     }
 }
 
-# Write settings
-$settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath -Encoding UTF8
+# Write settings WITHOUT BOM
+$json = $settings | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText($settingsPath, $json, [System.Text.UTF8Encoding]::new($false))
 
-Write-Host ""
-Write-Host "Marketplace configured: knife-edge -> GitHub" -ForegroundColor Green
 Write-Host ""
 Write-Host "Plugins enabled: $added new, $existing already configured"
 Write-Host ""
@@ -87,5 +81,6 @@ Write-Host "     - C++:        Install clangd (via LLVM or Visual Studio)"
 Write-Host ""
 Write-Host "  2. Restart Claude Code for changes to take effect"
 Write-Host ""
-Write-Host "  3. Run /ke:status to verify the plugin is loaded"
+Write-Host "  3. For KE commands, start Claude with:"
+Write-Host "     claude --plugin-dir `$HOME\claude-tools\plugins\ke"
 Write-Host ""

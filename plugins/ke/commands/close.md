@@ -1,3 +1,7 @@
+---
+description: Commit, push, and close a GitHub issue
+---
+
 # Close GitHub Issue
 
 Commit and push changes, then close the GitHub issue. If a worktree was created for this issue, merge it first and clean up.

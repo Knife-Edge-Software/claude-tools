@@ -1,3 +1,7 @@
+---
+description: Implement the next step from an issue plan
+---
+
 # Implement Next Step of Issue Plan
 
 Implement the next step from an existing implementation plan on a GitHub issue.

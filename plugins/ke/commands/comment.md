@@ -1,3 +1,7 @@
+---
+description: Add a comment to a GitHub issue
+---
+
 # Comment on GitHub Issue
 
 Add a comment to a GitHub issue.

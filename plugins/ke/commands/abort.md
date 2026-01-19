@@ -1,3 +1,7 @@
+---
+description: Abandon work on an issue and cleanup
+---
+
 # Abort Issue Work
 
 Abandon work on an issue, removing the worktree and branch.

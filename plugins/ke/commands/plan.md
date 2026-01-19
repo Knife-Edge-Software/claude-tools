@@ -1,3 +1,7 @@
+---
+description: Create an implementation plan for a GitHub issue
+---
+
 # Plan GitHub Issue
 
 Review a GitHub issue and create an implementation plan, then post it as a comment on the issue.

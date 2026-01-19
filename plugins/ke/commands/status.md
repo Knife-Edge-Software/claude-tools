@@ -1,3 +1,7 @@
+---
+description: Show all issue work in progress
+---
+
 # Issue Status
 
 Show the status of all issue work in progress across worktrees and branches.

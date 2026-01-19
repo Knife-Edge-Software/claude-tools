@@ -1,3 +1,7 @@
+---
+description: Assign users to a GitHub issue
+---
+
 # Assign GitHub Issue
 
 Assign or unassign users to/from a GitHub issue.

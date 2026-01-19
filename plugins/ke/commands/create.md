@@ -1,3 +1,7 @@
+---
+description: Create a new GitHub issue
+---
+
 # Create GitHub Issue
 
 Create a new GitHub issue based on a description.

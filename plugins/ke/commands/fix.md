@@ -1,3 +1,7 @@
+---
+description: Implement a GitHub issue (no worktree)
+---
+
 # Fix GitHub Issue
 
 Implement an entire GitHub issue based on its implementation plan.

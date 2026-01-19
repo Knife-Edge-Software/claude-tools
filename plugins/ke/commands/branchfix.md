@@ -1,3 +1,7 @@
+---
+description: Implement a GitHub issue in a dedicated worktree
+---
+
 # Fix GitHub Issue in Worktree
 
 Implement an entire GitHub issue in a dedicated git worktree, keeping the main working directory clean.

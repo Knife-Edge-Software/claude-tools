@@ -1,3 +1,7 @@
+---
+description: Create a pull request for an issue
+---
+
 # Create Pull Request for Issue
 
 Create a pull request from the current branch, linking it to a GitHub issue.

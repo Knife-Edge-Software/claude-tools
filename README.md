@@ -1,6 +1,6 @@
 # Knife Edge Claude Tools
 
-A Claude Code plugin for the Knife Edge Software team providing issue management commands, C++/Rust development support, and flight simulation domain knowledge.
+A Claude Code plugin for the Knife Edge Software team providing issue management commands.
 
 ## Installation
 
@@ -75,42 +75,6 @@ Create a pull request linking to an issue.
 /ke:pr 42 --reviewer johndoe --draft
 ```
 
-## LSP Support
-
-The plugin configures language servers for:
-
-- **C++**: clangd with background indexing
-- **Rust**: rust-analyzer
-
-File extensions mapped:
-- `.cpp`, `.hpp`, `.h`, `.cc` → C++
-- `.rs` → Rust
-
-## Hooks
-
-Auto-formatting hooks run after file edits:
-
-- **C++/HPP/H files**: `clang-format -i`
-- **Rust files**: `cargo fmt`
-
-## Skills
-
-Domain knowledge included:
-
-### Flight Simulation (`skills/flight-sim/`)
-- Units and conventions (meters, knots, radians)
-- Coordinate systems (ECEF, NED, body)
-- Performance targets (FPS, memory budgets)
-- Common simulation patterns
-
-### C++ Patterns (`skills/cpp-patterns/`)
-- Modern C++ standards (C++17/20)
-- Memory management (smart pointers, RAII)
-- Error handling patterns
-- Threading best practices
-- Performance optimization
-- Code style guidelines
-
 ## Workflows
 
 ### Simple
@@ -136,11 +100,9 @@ When you need a formal PR review:
 
 ## Requirements
 
-- [Claude CLI](https://docs.anthropic.com/claude-code) installed
+- [Claude Code](https://claude.ai/code) installed
 - [GitHub CLI](https://cli.github.com/) (`gh`) authenticated
 - Git 2.x+
-- For LSP: `clangd` and/or `rust-analyzer` installed
-- For hooks: `clang-format` and/or `cargo`
 
 ## Contributing
 

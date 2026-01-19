@@ -47,6 +47,28 @@ If you prefer to edit settings files directly:
 
 **Step 3:** Restart Claude Code.
 
+### Updating the Plugin
+
+Third-party marketplaces (like this one) have auto-update **disabled by default**. To get updates:
+
+**Option 1: Enable auto-updates (recommended)**
+1. Run `/plugin` in Claude Code
+2. Go to **Marketplaces** tab
+3. Find `knife-edge-software-claude-tools`
+4. Toggle **auto-update** on
+
+With auto-update enabled, restarting Claude Code will automatically fetch the latest version.
+
+**Option 2: Manual update**
+```bash
+claude plugin update ke@knife-edge-software-claude-tools
+```
+
+**Option 3: Refresh marketplace**
+```
+/plugin marketplace update knife-edge-software-claude-tools
+```
+
 ### Development / Testing
 
 For local development and testing:

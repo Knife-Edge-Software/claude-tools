@@ -9,19 +9,22 @@ Implement an entire GitHub issue in a dedicated git worktree, keeping the main w
 ## Usage
 
 ```
-/ke:branchfix [issue-number]
+/ke:branchfix [issue-numbers] [--split]
 ```
 
-Issue number is optional if an issue has already been discussed in the current conversation.
+- Issue number is optional if an issue has already been discussed in the current conversation.
+- Multiple issue numbers can be provided (e.g., `42 43 44` or `42, 43, 44`)
+- Use `--split` to create separate branches/worktrees for each issue (see below)
 
 ## Instructions
 
 You are tasked with fully implementing a GitHub issue in a separate git worktree based on its implementation plan.
 
-### Step 0: Determine the Issue Number(s)
+### Step 0: Determine the Issue Number(s) and Flags
 
-- If `$ARGUMENTS` is provided and non-empty, parse it for issue numbers
-  - Multiple issue numbers can be provided (e.g., `42 43 44` or `42, 43, 44` or `#42 #43`)
+- If `$ARGUMENTS` is provided and non-empty, parse it for:
+  - **Issue numbers**: Multiple can be provided (e.g., `42 43 44` or `42, 43, 44` or `#42 #43`)
+  - **Flags**: Check for `--split` flag to create separate worktrees for each issue
   - Extract all numeric issue identifiers from the arguments
 - Otherwise, infer the issue number using these sources (in priority order):
   1. Conversation context (previously discussed issue, URL mentioned, `gh issue view` output)
@@ -37,7 +40,7 @@ You are tasked with fully implementing a GitHub issue in a separate git worktree
   Is this correct? (yes/no/specify different issue)
   ```
 
-**If multiple issue numbers are provided:**
+**If multiple issue numbers are provided (default behavior):**
 - All issues will be implemented in the **same worktree** under a **single branch**
 - The branch and worktree are named after the **first issue** (e.g., `issue-42` for `/ke:branchfix 42 43 44`)
 - Process each issue sequentially (complete all steps for issue 1, then all steps for issue 2, etc.)
@@ -45,11 +48,23 @@ You are tasked with fully implementing a GitHub issue in a separate git worktree
 - Track the outcome of each issue (success, failure, skipped, etc.)
 - After processing ALL issues, provide a summary report (see "Final Summary Report" section at the end)
 
-**Why same worktree for multiple issues:**
+**Why same worktree for multiple issues (default):**
 - Related issues often touch the same files (e.g., edit features #50-55 all modify graphql.rs, commands.rs, main.js)
 - Sequential work in one worktree avoids merge conflicts
 - Each issue builds on patterns established by previous issues
 - Commits after each issue create checkpoints for rollback if needed
+
+**If `--split` flag is provided:**
+- Each issue gets its **own branch and worktree** (e.g., `/ke:branchfix 42 43 44 --split`)
+- Creates: `repo-issue-42`, `repo-issue-43`, `repo-issue-44` as separate worktrees
+- Process each issue sequentially, but in isolated worktrees
+- Each worktree must be closed separately with `/ke:close`
+
+**When to use `--split`:**
+- Issues are **unrelated** and don't share files
+- You want to create **separate PRs** for each issue
+- You want to **parallelize review** (others can review one PR while you work on another)
+- Issues have **different base branches** or release targets
 
 ### Step 1: Fetch the Issue and Plan
 
@@ -96,16 +111,24 @@ git worktree list | grep "issue-<issue-number>"
 
 Create a new branch and worktree for this issue:
 
-**For single issue or first issue in a batch:**
+**For single issue or first issue in a batch (without `--split`):**
 1. Create a branch named `issue-<issue-number>` (e.g., `issue-42`)
 2. Create a worktree in a sibling directory named `<repo-name>-issue-<issue-number>`
    - For example, if working in `/projects/myapp`, create worktree at `/projects/myapp-issue-42`
 3. Use: `git worktree add ../<repo-name>-issue-<issue-number> -b issue-<issue-number>`
 
-**For subsequent issues in a batch (e.g., `/ke:branchfix 42 43 44`):**
+**For subsequent issues in a batch (without `--split`):**
 - Skip worktree creation - continue using the worktree created for the first issue
 - All issues share the same branch and worktree
 - Commit after completing each issue before starting the next
+
+**For each issue when using `--split`:**
+1. Create a branch named `issue-<issue-number>` for this specific issue
+2. Create a worktree in a sibling directory named `<repo-name>-issue-<issue-number>`
+3. Use: `git worktree add ../<repo-name>-issue-<issue-number> -b issue-<issue-number>`
+4. Complete all steps (implement, commit, comment) for this issue in its worktree
+5. Return to the original directory before processing the next issue
+6. Repeat for each issue number provided
 
 **IMPORTANT:** After creating the worktree, inform the user:
 - The worktree location
@@ -122,7 +145,7 @@ Created git worktree for issue #42:
 When implementation is complete, use /ke:close to merge and remove the worktree.
 ```
 
-Example message (multiple issues):
+Example message (multiple issues, default):
 ```
 Created git worktree for issues #42, #43, #44:
 - Branch: issue-42
@@ -130,6 +153,25 @@ Created git worktree for issues #42, #43, #44:
 - Issues to implement: #42 → #43 → #44 (sequentially, with commits between each)
 
 When all implementations are complete, use /ke:close to merge and remove the worktree.
+```
+
+Example message (multiple issues with `--split`):
+```
+Creating separate worktrees for issues #42, #43, #44:
+
+Issue #42:
+- Branch: issue-42
+- Location: /projects/myapp-issue-42
+
+Issue #43:
+- Branch: issue-43
+- Location: /projects/myapp-issue-43
+
+Issue #44:
+- Branch: issue-44
+- Location: /projects/myapp-issue-44
+
+Each issue will be implemented in its own worktree. Use /ke:close <issue-number> to merge and remove each worktree separately.
 ```
 
 ### Step 3: Change to Worktree Directory
@@ -193,6 +235,7 @@ After updating the issue, ask the user to review the changes before committing.
 
 When multiple issues were processed, provide a summary table at the end:
 
+**Default mode (shared worktree):**
 ```markdown
 ## Issues Processed
 
@@ -213,4 +256,25 @@ When multiple issues were processed, provide a summary table at the end:
 
 ### Next Steps
 Use `/ke:close 42` to merge all changes and remove the worktree.
+```
+
+**Split mode (separate worktrees):**
+```markdown
+## Issues Processed
+
+| Issue | Title | Status | Worktree | Branch | Commit |
+|-------|-------|--------|----------|--------|--------|
+| #42 | [Issue title] | ✅ Implemented | ../repo-issue-42 | issue-42 | abc1234 |
+| #43 | [Issue title] | ✅ Implemented | ../repo-issue-43 | issue-43 | def5678 |
+| #44 | [Issue title] | ❌ Failed | ../repo-issue-44 | issue-44 | - |
+
+### Summary
+- **Implemented:** 2
+- **Failed:** 1
+
+### Next Steps
+Close each worktree separately:
+- `/ke:close 42` - merge and remove issue-42 worktree
+- `/ke:close 43` - merge and remove issue-43 worktree
+- `/ke:close 44` - remove failed worktree (or fix and retry)
 ```

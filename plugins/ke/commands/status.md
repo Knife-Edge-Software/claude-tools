@@ -14,7 +14,56 @@ Show the status of all issue work in progress across worktrees and branches.
 
 ## Instructions
 
-Display a comprehensive overview of all in-progress issue work.
+Display a comprehensive overview of the current working directory and all in-progress issue work.
+
+### Step 0: Show Current Working Directory Status
+
+First, display information about the current working directory:
+
+1. **Current directory path** - the absolute path
+2. **Current branch** - which branch is checked out
+3. **Git status** - uncommitted changes (staged, unstaged, untracked)
+4. **Last commit** - hash and message
+5. **Remote status** - ahead/behind origin
+
+Use these commands:
+```bash
+# Current branch
+git branch --show-current
+
+# Last commit
+git log -1 --format="%h %s (%cr)"
+
+# Uncommitted changes
+git status --short
+
+# Ahead/behind origin
+git rev-list --left-right --count HEAD...@{upstream}
+```
+
+Display this first in the output:
+```markdown
+## Current Directory
+
+**Path:** /projects/myapp
+**Branch:** main
+**Last commit:** abc1234 - "Fix login bug" (2 hours ago)
+**Status:** Clean (no uncommitted changes)
+```
+
+Or if there are changes:
+```markdown
+## Current Directory
+
+**Path:** /projects/myapp
+**Branch:** feature-xyz
+**Last commit:** abc1234 - "WIP feature" (30 minutes ago)
+**Uncommitted changes:**
+- M  src/app.ts (modified)
+- A  src/new-file.ts (staged)
+- ?? src/temp.txt (untracked)
+**Remote:** 2 commits ahead of origin
+```
 
 ### Step 1: Find All Issue Worktrees
 
@@ -92,6 +141,15 @@ Based on the status, suggest actions:
 ### Example Output
 
 ```
+## Current Directory
+
+**Path:** /projects/IssueSpace
+**Branch:** main
+**Last commit:** 9f2a3b1 - "Merge PR #49: Add search feature" (1 day ago)
+**Status:** Clean
+
+---
+
 ## Issue Work Status
 
 ### Active Worktrees

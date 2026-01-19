@@ -4,52 +4,59 @@ A Claude Code plugin for the Knife Edge Software team providing issue management
 
 ## Installation
 
-### Option 1: Install for All Projects (User Scope)
+### Quick Install (Recommended)
 
-Add the plugin to your user settings at `~/.claude/settings.json`:
+Run these commands in Claude Code:
+
+```
+/plugin marketplace add Knife-Edge-Software/claude-tools
+/plugin install ke@knife-edge-software-claude-tools
+```
+
+That's it! The `/ke:plan`, `/ke:fix`, and other commands are now available.
+
+### Manual Install via Settings
+
+If you prefer to edit settings files directly:
+
+**Step 1:** Add the marketplace to your settings file:
+
+| Scope | File Location |
+|-------|---------------|
+| User (all projects) | `~/.claude/settings.json` |
+| Project (shared with team) | `.claude/settings.json` |
+| Local (just you, gitignored) | `.claude/settings.local.json` |
+
+**Step 2:** Add this configuration:
 
 ```json
 {
-  "plugins": [
-    "https://github.com/Knife-Edge-Software/claude-tools"
-  ]
+  "enabledPlugins": {
+    "ke@knife-edge-software-claude-tools": true
+  },
+  "extraKnownMarketplaces": {
+    "knife-edge-software-claude-tools": {
+      "source": {
+        "source": "github",
+        "repo": "Knife-Edge-Software/claude-tools"
+      }
+    }
+  }
 }
 ```
 
-### Option 2: Install for a Specific Project (Project Scope)
-
-Add to your project's `.claude/settings.json` (committed to version control):
-
-```json
-{
-  "plugins": [
-    "https://github.com/Knife-Edge-Software/claude-tools"
-  ]
-}
-```
-
-### Option 3: Install Locally (Local Scope)
-
-Add to your project's `.claude/settings.local.json` (gitignored):
-
-```json
-{
-  "plugins": [
-    "https://github.com/Knife-Edge-Software/claude-tools"
-  ]
-}
-```
+**Step 3:** Restart Claude Code.
 
 ### Development / Testing
 
-For local development and testing, use the `--plugin-dir` flag:
+For local development and testing:
 
 ```bash
 # Clone the repo
 git clone https://github.com/Knife-Edge-Software/claude-tools.git
 
-# Test with Claude Code
-claude --plugin-dir /path/to/claude-tools
+# Run Claude Code with the plugin (note: plugin is in plugins/ke/ subdirectory)
+claude --plugin-dir /path/to/claude-tools/plugins/ke
 ```
 
 ## Commands
@@ -140,15 +147,15 @@ When you need a formal PR review:
 
 ## Requirements
 
-- [Claude Code](https://claude.ai/code) installed
-- [GitHub CLI](https://cli.github.com/) (`gh`) authenticated
+- [Claude Code](https://claude.ai/download) installed
+- [GitHub CLI](https://cli.github.com/) (`gh`) installed and authenticated (`gh auth login`)
 - Git 2.x+
 
 ## Contributing
 
 1. Clone the repo
-2. Make changes to commands in `commands/`
-3. Test with `claude --plugin-dir ./`
+2. Make changes to commands in `plugins/ke/commands/`
+3. Test with `claude --plugin-dir ./plugins/ke`
 4. Submit a PR
 
 ## License

@@ -1,0 +1,21 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "clang-format -i $FILE",
+            "match": "\\.cpp$|\\.hpp$|\\.h$"
+          },
+          {
+            "type": "command",
+            "command": "cargo fmt -- $FILE",
+            "match": "\\.rs$"
+          }
+        ]
+      }
+    ]
+  }
+}

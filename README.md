@@ -4,22 +4,21 @@ A Claude Code plugin for the Knife Edge Software team providing issue management
 
 ## Installation
 
-```bash
-# Clone the plugin to your Claude plugins directory
-git clone https://github.com/Knife-Edge-Software/claude-tools.git %USERPROFILE%\.claude\plugins\ke
+**PowerShell:**
+```powershell
+git clone https://github.com/Knife-Edge-Software/claude-tools.git $HOME\.claude\plugins\ke
+& $HOME\.claude\plugins\ke\setup.ps1
 ```
 
-Then run the setup script:
-
-```powershell
-# PowerShell (recommended on Windows)
-~\.claude\plugins\ke\setup.ps1
-
-# Or using Node.js (cross-platform)
-node ~\.claude\plugins\ke\setup.js
-
-# Or Git Bash
+**Git Bash:**
+```bash
+git clone https://github.com/Knife-Edge-Software/claude-tools.git ~/.claude/plugins/ke
 ~/.claude/plugins/ke/setup.sh
+```
+
+**Or using Node.js (any shell):**
+```
+node $HOME\.claude\plugins\ke\setup.js
 ```
 
 Restart Claude Code for changes to take effect.

@@ -1,5 +1,5 @@
 # Knife Edge Claude Tools - Setup Script (PowerShell)
-# Configures Claude Code with LSP support for Rust, TypeScript, and C++
+# Configures Claude Code with LSP support and the KE plugin marketplace
 
 $ErrorActionPreference = "Stop"
 
@@ -17,18 +17,22 @@ if (-not (Test-Path $claudeDir)) {
 }
 
 # Plugins to enable
-$plugins = @(
-    "rust-analyzer-lsp@claude-plugins-official"
-    "typescript-lsp@claude-plugins-official"
-    "clangd-lsp@claude-plugins-official"
-    "context7@claude-plugins-official"
-)
+$plugins = @{
+    "rust-analyzer-lsp@claude-plugins-official" = $true
+    "typescript-lsp@claude-plugins-official" = $true
+    "clangd-lsp@claude-plugins-official" = $true
+    "context7@claude-plugins-official" = $true
+    "ke@knife-edge" = $true
+}
 
 # Load or create settings
 $settings = @{}
 if (Test-Path $settingsPath) {
     try {
-        $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json -AsHashtable
+        $content = Get-Content $settingsPath -Raw
+        if ($content) {
+            $settings = $content | ConvertFrom-Json -AsHashtable
+        }
         Write-Host "Loaded existing settings.json"
     } catch {
         Write-Host "Warning: Could not parse existing settings.json, starting fresh" -ForegroundColor Yellow
@@ -41,10 +45,16 @@ if (-not $settings.ContainsKey("enabledPlugins")) {
     $settings["enabledPlugins"] = @{}
 }
 
+# Ensure extraKnownMarketplaces exists and add knife-edge
+if (-not $settings.ContainsKey("extraKnownMarketplaces")) {
+    $settings["extraKnownMarketplaces"] = @{}
+}
+$settings["extraKnownMarketplaces"]["knife-edge"] = "https://github.com/Knife-Edge-Software/claude-tools"
+
 # Add plugins
 $added = 0
 $existing = 0
-foreach ($plugin in $plugins) {
+foreach ($plugin in $plugins.Keys) {
     if ($settings["enabledPlugins"].ContainsKey($plugin)) {
         $existing++
     } else {
@@ -57,9 +67,11 @@ foreach ($plugin in $plugins) {
 $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath -Encoding UTF8
 
 Write-Host ""
+Write-Host "Marketplace configured: knife-edge -> GitHub" -ForegroundColor Green
+Write-Host ""
 Write-Host "Plugins enabled: $added new, $existing already configured"
 Write-Host ""
-foreach ($plugin in $plugins) {
+foreach ($plugin in $plugins.Keys) {
     $name = $plugin.Split("@")[0]
     Write-Host "  [+] $name" -ForegroundColor Green
 }
@@ -74,4 +86,6 @@ Write-Host "     - TypeScript: npm install -g typescript-language-server typescr
 Write-Host "     - C++:        Install clangd (via LLVM or Visual Studio)"
 Write-Host ""
 Write-Host "  2. Restart Claude Code for changes to take effect"
+Write-Host ""
+Write-Host "  3. Run /ke:status to verify the plugin is loaded"
 Write-Host ""

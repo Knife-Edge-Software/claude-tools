@@ -1,36 +1,42 @@
 # Knife Edge Claude Tools
 
-A Claude Code plugin for the Knife Edge Software team providing issue management commands and development environment configuration.
+A Claude Code plugin marketplace for the Knife Edge Software team providing issue management commands and development environment configuration.
 
 ## Installation
 
-**PowerShell:**
+**Option 1: Download and run setup script (recommended)**
+
 ```powershell
-git clone https://github.com/Knife-Edge-Software/claude-tools.git $HOME\.claude\plugins\ke
-& $HOME\.claude\plugins\ke\setup.ps1
+# Download setup script
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Knife-Edge-Software/claude-tools/main/setup.ps1" -OutFile "$env:TEMP\ke-setup.ps1"
+
+# Run it
+& "$env:TEMP\ke-setup.ps1"
+
+# Restart Claude Code
 ```
 
-**Git Bash:**
-```bash
-git clone https://github.com/Knife-Edge-Software/claude-tools.git ~/.claude/plugins/ke
-~/.claude/plugins/ke/setup.sh
+**Option 2: Clone and run locally**
+
+```powershell
+# Clone the repo
+git clone https://github.com/Knife-Edge-Software/claude-tools.git $HOME\.claude\ke-tools
+
+# Run setup
+& $HOME\.claude\ke-tools\setup.ps1
+
+# Restart Claude Code
 ```
 
-**Or using Node.js (any shell):**
-```
-node $HOME\.claude\plugins\ke\setup.js
-```
+## What the Setup Script Does
 
-Restart Claude Code for changes to take effect.
-
-## Setup Script
-
-The setup script configures Claude Code with LSP support for our tech stack:
-
-- **rust-analyzer-lsp** - Rust (Tauri backends, tools)
-- **typescript-lsp** - TypeScript/JavaScript (frontends)
-- **clangd-lsp** - C/C++ (flight simulators, native code)
-- **context7** - Up-to-date library documentation
+1. **Registers the knife-edge marketplace** in Claude Code settings
+2. **Enables these plugins:**
+   - `ke@knife-edge` - Issue management commands
+   - `rust-analyzer-lsp` - Rust language support
+   - `typescript-lsp` - TypeScript/JavaScript support
+   - `clangd-lsp` - C/C++ support
+   - `context7` - Library documentation
 
 ### Prerequisites
 
@@ -51,7 +57,7 @@ npm install -g typescript-language-server typescript
 
 ## Commands
 
-All commands use the `ke:` namespace prefix.
+All commands use the `/ke:` prefix.
 
 ### Issue Management
 
@@ -74,7 +80,7 @@ All commands use the `ke:` namespace prefix.
 #### `/ke:plan`
 Review a GitHub issue and create a detailed implementation plan posted as a comment.
 
-```bash
+```
 /ke:plan 42           # Plan issue #42
 /ke:plan 42 43 44     # Plan multiple issues
 /ke:plan              # Shows unplanned issues to choose from
@@ -83,7 +89,7 @@ Review a GitHub issue and create a detailed implementation plan posted as a comm
 #### `/ke:branchfix`
 Implement issues in a dedicated git worktree, keeping main directory clean.
 
-```bash
+```
 /ke:branchfix 42          # Work on issue #42 in worktree
 /ke:branchfix 42 43 44    # Work on multiple issues in same worktree
 ```
@@ -91,14 +97,14 @@ Implement issues in a dedicated git worktree, keeping main directory clean.
 #### `/ke:close`
 Finalize work by merging worktree (if applicable), pushing, and closing the issue.
 
-```bash
+```
 /ke:close 42
 ```
 
 #### `/ke:create`
 Create new issues with optional milestone and assignee.
 
-```bash
+```
 /ke:create Add dark mode toggle
 /ke:create Fix login bug --assignee @me
 /ke:create New feature --milestone v2.0 --assignee johndoe
@@ -107,7 +113,7 @@ Create new issues with optional milestone and assignee.
 #### `/ke:pr`
 Create a pull request linking to an issue.
 
-```bash
+```
 /ke:pr 42
 /ke:pr 42 --reviewer johndoe --draft
 ```
@@ -145,8 +151,8 @@ When you need a formal PR review:
 ## Contributing
 
 1. Clone the repo
-2. Make changes to commands in `commands/`
-3. Test with `claude --plugin-dir ./`
+2. Make changes to plugins in `plugins/ke/`
+3. Test with `claude --plugin-dir ./plugins/ke`
 4. Submit a PR
 
 ## License

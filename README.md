@@ -1,6 +1,6 @@
 # Knife Edge Claude Tools
 
-A Claude Code plugin for the Knife Edge Software team providing issue management commands.
+A Claude Code plugin for the Knife Edge Software team providing issue management commands and development environment configuration.
 
 ## Installation
 
@@ -8,8 +8,35 @@ A Claude Code plugin for the Knife Edge Software team providing issue management
 # Clone the plugin to your Claude plugins directory
 git clone https://github.com/Knife-Edge-Software/claude-tools.git ~/.claude/plugins/ke
 
-# Run Claude Code with the plugin
-claude --plugin-dir ~/.claude/plugins/ke
+# Run setup to enable LSP support
+~/.claude/plugins/ke/setup.sh
+
+# Restart Claude Code for changes to take effect
+```
+
+## Setup Script
+
+The `setup.sh` script configures Claude Code with LSP support for our tech stack:
+
+- **rust-analyzer-lsp** - Rust (Tauri backends, tools)
+- **typescript-lsp** - TypeScript/JavaScript (frontends)
+- **clangd-lsp** - C/C++ (flight simulators, native code)
+- **context7** - Up-to-date library documentation
+
+### Prerequisites
+
+The language servers must be installed on your system:
+
+```bash
+# Rust (via rustup)
+rustup component add rust-analyzer
+
+# TypeScript
+npm install -g typescript-language-server typescript
+
+# C++ (Windows - install LLVM/clangd, or via Visual Studio)
+# macOS: brew install llvm
+# Linux: sudo apt install clangd
 ```
 
 ## Commands
@@ -103,6 +130,7 @@ When you need a formal PR review:
 - [Claude Code](https://claude.ai/code) installed
 - [GitHub CLI](https://cli.github.com/) (`gh`) authenticated
 - Git 2.x+
+- Language servers (see Setup Script section)
 
 ## Contributing
 

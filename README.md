@@ -111,18 +111,28 @@ Domain knowledge included:
 - Performance optimization
 - Code style guidelines
 
-## Typical Workflow
+## Workflows
 
-1. **Plan**: `/ke:plan 42` - Create implementation plan
-2. **Start work**: `/ke:branchfix 42` - Create worktree and implement
-3. **Review**: Claude asks for review before finishing
-4. **Close**: `/ke:close 42` - Merge and cleanup
-5. *(Optional)* **Create PR**: `/ke:pr 42` - If you need a formal review
+### Simple
+For quick fixes without worktrees:
+1. `/ke:plan 42` - Create implementation plan
+2. `/ke:fix 42` - Implement the solution
+3. `/ke:close 42` - Commit, push, and close
 
-Or for simpler changes without worktrees:
-1. `/ke:plan 42`
-2. `/ke:fix 42`
-3. `/ke:close 42`
+### Typical
+For most work, using isolated worktrees:
+1. `/ke:plan 42` - Create implementation plan
+2. `/ke:branchfix 42` - Create worktree and implement
+3. **Review** - Claude asks for review before finishing
+4. `/ke:close 42` - Merge worktree, push, and close
+
+### Full
+When you need a formal PR review:
+1. `/ke:plan 42` - Create implementation plan
+2. `/ke:branchfix 42` - Create worktree and implement
+3. **Review** - Claude asks for review before finishing
+4. `/ke:pr 42` - Push and create pull request
+5. `/ke:close 42` - Merge and cleanup (after PR approved)
 
 ## Requirements
 

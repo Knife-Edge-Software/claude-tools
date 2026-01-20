@@ -4,8 +4,6 @@ A Claude Code plugin for the Knife Edge Software team providing issue management
 
 ## Installation
 
-### Quick Install (Recommended)
-
 Run these commands in Claude Code:
 
 ```
@@ -13,74 +11,14 @@ Run these commands in Claude Code:
 /plugin install ke@knife-edge-software-claude-tools
 ```
 
-That's it! The `/ke:plan`, `/ke:fix`, and other commands are now available.
+Then enable auto-updates so you always have the latest version:
 
-### Manual Install via Settings
-
-If you prefer to edit settings files directly:
-
-**Step 1:** Add the marketplace to your settings file:
-
-| Scope | File Location |
-|-------|---------------|
-| User (all projects) | `~/.claude/settings.json` |
-| Project (shared with team) | `.claude/settings.json` |
-| Local (just you, gitignored) | `.claude/settings.local.json` |
-
-**Step 2:** Add this configuration:
-
-```json
-{
-  "enabledPlugins": {
-    "ke@knife-edge-software-claude-tools": true
-  },
-  "extraKnownMarketplaces": {
-    "knife-edge-software-claude-tools": {
-      "source": {
-        "source": "github",
-        "repo": "Knife-Edge-Software/claude-tools"
-      },
-      "autoUpdate": true
-    }
-  }
-}
-```
-
-**Step 3:** Restart Claude Code.
-
-### Updating the Plugin
-
-Third-party marketplaces (like this one) have auto-update **disabled by default**. To get updates:
-
-**Option 1: Enable auto-updates (recommended)**
 1. Run `/plugin` in Claude Code
 2. Go to **Marketplaces** tab
 3. Find `knife-edge-software-claude-tools`
 4. Toggle **auto-update** on
 
-With auto-update enabled, restarting Claude Code will automatically fetch the latest version.
-
-**Option 2: Manual update**
-```bash
-claude plugin update ke@knife-edge-software-claude-tools
-```
-
-**Option 3: Refresh marketplace**
-```
-/plugin marketplace update knife-edge-software-claude-tools
-```
-
-### Development / Testing
-
-For local development and testing:
-
-```bash
-# Clone the repo
-git clone https://github.com/Knife-Edge-Software/claude-tools.git
-
-# Run Claude Code with the plugin (note: plugin is in plugins/ke/ subdirectory)
-claude --plugin-dir /path/to/claude-tools/plugins/ke
-```
+That's it! The `/ke:plan`, `/ke:fix`, and other commands are now available.
 
 ## Commands
 
@@ -207,3 +145,64 @@ For working through multiple issues efficiently:
 ## License
 
 MIT
+
+---
+
+## Advanced
+
+### Manual Installation
+
+If you prefer to edit settings files directly:
+
+**Step 1:** Choose your settings file:
+
+| Scope | File Location |
+|-------|---------------|
+| User (all projects) | `~/.claude/settings.json` |
+| Project (shared with team) | `.claude/settings.json` |
+| Local (just you, gitignored) | `.claude/settings.local.json` |
+
+**Step 2:** Add this configuration:
+
+```json
+{
+  "enabledPlugins": {
+    "ke@knife-edge-software-claude-tools": true
+  },
+  "extraKnownMarketplaces": {
+    "knife-edge-software-claude-tools": {
+      "source": {
+        "source": "github",
+        "repo": "Knife-Edge-Software/claude-tools"
+      },
+      "autoUpdate": true
+    }
+  }
+}
+```
+
+**Step 3:** Restart Claude Code.
+
+### Manual Updates
+
+If you don't have auto-update enabled:
+
+```bash
+# Update via CLI
+claude plugin update ke@knife-edge-software-claude-tools
+
+# Or refresh marketplace
+/plugin marketplace update knife-edge-software-claude-tools
+```
+
+### Local Development
+
+For local development and testing:
+
+```bash
+# Clone the repo
+git clone https://github.com/Knife-Edge-Software/claude-tools.git
+
+# Run Claude Code with the plugin (note: plugin is in plugins/ke/ subdirectory)
+claude --plugin-dir /path/to/claude-tools/plugins/ke
+```

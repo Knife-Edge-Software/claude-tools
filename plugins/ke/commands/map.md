@@ -138,7 +138,7 @@ Organize issues into parallel tracks:
 
 ### Step 7: Output the Plan
 
-Generate three sections:
+Generate two sections:
 
 #### Section 1: Dependency Updates Applied
 
@@ -205,71 +205,6 @@ No file overlap, can run anytime
 ### Unplanned (run /ke:plan first)
 - #52: No implementation plan found
 - #56: No implementation plan found
-```
-
-#### Section 3: Dependency Graph
-
-Output a Mermaid diagram:
-
-~~~markdown
-## Dependency Graph
-
-```mermaid
-flowchart TD
-    subgraph TrackA["Track A: Auth"]
-        42["#42 Auth middleware"]
-        45["#45 Login"]
-        47["#47 Logout"]
-        42 --> 45
-        42 --> 47
-    end
-
-    subgraph TrackB["Track B: UI"]
-        50["#50 Button hover"]
-        51["#51 Button loading"]
-        50 --> 51
-    end
-
-    subgraph TrackC["Track C: Independent"]
-        53["#53 Date parsing"]
-        54["#54 Typo fixes"]
-    end
-
-    45 --> 48["#48 Protected routes"]
-
-    style 42 fill:#4ade80
-    style 50 fill:#4ade80
-    style 53 fill:#4ade80
-    style 54 fill:#4ade80
-    style 48 fill:#fbbf24
-```
-
-**Legend:**
-- Green = Ready to start
-- Yellow = Blocked
-- Arrows = "must complete before"
-~~~
-
-Also output ASCII version for terminal:
-
-```
-Track A (Auth)          Track B (UI)         Track C (Independent)
-─────────────           ────────────         ─────────────────────
-     │                       │                    │         │
-     ▼                       ▼                    ▼         ▼
-  ┌──────┐               ┌──────┐             ┌──────┐  ┌──────┐
-  │ #42  │               │ #50  │             │ #53  │  │ #54  │
-  └──┬───┘               └──┬───┘             └──────┘  └──────┘
-   ┌─┴─┐                    │
-   ▼   ▼                    ▼
-┌────┐┌────┐             ┌──────┐
-│#45 ││#47 │             │ #51  │
-└─┬──┘└────┘             └──────┘
-  │
-  ▼ (blocked)
-┌──────┐
-│ #48  │
-└──────┘
 ```
 
 ### Step 8: Handle Edge Cases

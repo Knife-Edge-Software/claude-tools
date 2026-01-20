@@ -9,13 +9,14 @@ Analyze all open issues to detect dependencies, determine optimal execution orde
 ## Usage
 
 ```
-/ke:map [milestone-name | issue-numbers] [--label <label>]
+/ke:map [issue-numbers] [--milestone <name>] [--label <label>]
 ```
 
 - With no arguments, analyzes all open issues
-- With a milestone name (e.g., `/ke:map "Sprint 1"`), analyzes all open issues in that milestone
-- With issue numbers (e.g., `/ke:map 42 45 47 50`), analyzes only those issues
-- Use `--label` to filter to specific labels (e.g., `--label bug`)
+- With issue numbers (e.g., `/ke:map 42 45 47`), analyzes only those issues
+- Use `--milestone <name>` to filter to a specific milestone (e.g., `--milestone "Sprint 1"`)
+- Use `--label <label>` to filter to specific labels (e.g., `--label bug`)
+- Filters can be combined: `/ke:map --milestone "Sprint 1" --label bug`
 
 ## Instructions
 
@@ -23,15 +24,15 @@ You are tasked with analyzing open issues to detect dependencies, write them to 
 
 ### Step 1: Gather Issues
 
-**Determine argument type:**
-- If `$ARGUMENTS` contains only numbers (e.g., `42 45 47`), treat as issue numbers
-- If `$ARGUMENTS` is non-numeric text (e.g., `Sprint 1`, `v2.0`), treat as milestone name
-- If `$ARGUMENTS` is empty, fetch all open issues
+**Parse arguments:**
+1. Extract `--milestone <name>` flag if present (value may be quoted, e.g., `"Sprint 1"`)
+2. Extract `--label <label>` flag if present
+3. Remaining arguments are treated as issue numbers
 
-**If a milestone name is provided** (e.g., `/ke:map "Sprint 1"`):
+**If `--milestone` is provided** (e.g., `/ke:map --milestone "Sprint 1"`):
 ```bash
-# Fetch all open issues in that milestone
-gh issue list --state open --milestone "Sprint 1" --json number,title,body,labels,milestone --limit 100
+# Fetch all open issues in that milestone (optionally filtered by label)
+gh issue list --state open --milestone "Sprint 1" [--label "bug"] --json number,title,body,labels,milestone --limit 100
 ```
 
 **If specific issue numbers are provided** (e.g., `/ke:map 42 45 47`):
@@ -42,13 +43,14 @@ gh issue view 45 --json number,title,body,labels,milestone
 gh issue view 47 --json number,title,body,labels,milestone
 ```
 
-**If no arguments provided**, fetch all open issues (or filtered by --label if specified):
-```bash
-# All open issues
-gh issue list --state open --json number,title,body,labels,milestone --limit 100
+**If `--milestone` AND issue numbers are both provided** (e.g., `/ke:map 42 45 --milestone "Sprint 1"`):
+- Fetch the specified issues
+- Verify they belong to the specified milestone (warn if any do not)
 
-# Or filtered by label
-gh issue list --state open --label "bug" --json number,title,body,labels,milestone
+**If no arguments or only `--label` provided**, fetch all open issues:
+```bash
+# All open issues (optionally filtered by label)
+gh issue list --state open [--label "bug"] --json number,title,body,labels,milestone --limit 100
 ```
 
 For each issue, also fetch comments to find implementation plans:

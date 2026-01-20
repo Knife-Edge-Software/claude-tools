@@ -9,7 +9,17 @@ Review a GitHub issue and create an implementation plan, then post it as a comme
 ## Usage
 
 ```
-/ke:plan [issue-number]
+/ke:plan [issue-numbers] [--milestone <name>]
+```
+
+### Options
+- `--milestone <name>` - Plan all unplanned issues in the specified milestone
+
+### Examples
+```
+/ke:plan 42                        # Plan single issue
+/ke:plan 42 43 44                  # Plan multiple issues
+/ke:plan --milestone "Sprint 1"    # Plan all unplanned issues in Sprint 1
 ```
 
 Issue number is optional if an issue has already been discussed in the current conversation.
@@ -20,9 +30,24 @@ You are tasked with reviewing a GitHub issue and creating a detailed implementat
 
 ### Step 0: Determine the Issue Number(s)
 
-- If `$ARGUMENTS` is provided and non-empty, parse it for issue numbers
-  - Multiple issue numbers can be provided (e.g., `42 43 44` or `42, 43, 44` or `#42 #43`)
-  - Extract all numeric issue identifiers from the arguments
+- If `$ARGUMENTS` is provided and non-empty:
+  1. Extract `--milestone <name>` flag if present (value may be quoted, e.g., `"Sprint 1"`)
+  2. Parse remaining arguments for issue numbers (e.g., `42 43 44` or `42, 43, 44` or `#42 #43`)
+  3. If `--milestone` provided without issue numbers, fetch all open issues in that milestone:
+     ```bash
+     gh issue list --state open --milestone "<name>" --json number,title,createdAt,labels --limit 100
+     ```
+     Then filter to only unplanned issues (check each for existing implementation plan using Step 1a logic).
+     Report which issues will be planned:
+     ```
+     Found 5 open issues in milestone "Sprint 1":
+     - #42: Has plan (skipping)
+     - #43: No plan (will create)
+     - #44: No plan (will create)
+
+     Creating plans for 2 issues...
+     ```
+  4. If both `--milestone` and issue numbers provided, use only the issue numbers (ignore milestone filter)
 - Otherwise, check conversation context for an obvious issue (previously discussed issue, URL mentioned, `gh issue view` output)
 - If no issue number is provided and nothing obvious in context:
   1. Fetch open issues that have no comments (likely unplanned): `gh issue list --state open --json number,title,createdAt,labels --limit 50`

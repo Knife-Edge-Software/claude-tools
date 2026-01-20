@@ -47,18 +47,21 @@ All commands use the `ke:` namespace prefix.
 Review a GitHub issue and create a detailed implementation plan posted as a comment.
 
 ```bash
-/ke:plan 42           # Plan issue #42
-/ke:plan 42 43 44     # Plan multiple issues
-/ke:plan              # Shows unplanned issues to choose from
+/ke:plan 42                        # Plan issue #42
+/ke:plan 42 43 44                  # Plan multiple issues
+/ke:plan --milestone "Sprint 1"   # Plan all unplanned issues in milestone
+/ke:plan                           # Shows unplanned issues to choose from
 ```
 
 #### `/ke:map`
 Analyze dependencies across issues and output an execution plan with parallel tracks.
 
 ```bash
-/ke:map               # Analyze all open issues
-/ke:map 42 45 47 50   # Analyze specific issues only
-/ke:map --label bug   # Analyze only issues with "bug" label
+/ke:map                          # Analyze all open issues
+/ke:map 42 45 47 50              # Analyze specific issues only
+/ke:map --milestone "Sprint 1"  # Analyze issues in a milestone
+/ke:map --label bug              # Analyze only issues with "bug" label
+/ke:map --milestone "Sprint 1" --label bug  # Combine filters
 ```
 
 Detects dependencies based on file overlap, writes them to issues, and outputs:

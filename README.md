@@ -104,7 +104,7 @@ Create a pull request linking to an issue.
 ### Simple
 For quick fixes without worktrees:
 1. `/ke:plan 42` - Create implementation plan
-2. `/ke:fix 42` - Implement the solution
+2. `/ke:fix 42` - Implement
 3. `/ke:close 42` - Commit, push, and close
 
 ### Typical

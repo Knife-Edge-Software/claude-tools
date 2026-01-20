@@ -39,7 +39,8 @@ If you prefer to edit settings files directly:
       "source": {
         "source": "github",
         "repo": "Knife-Edge-Software/claude-tools"
-      }
+      },
+      "autoUpdate": true
     }
   }
 }
@@ -51,13 +52,31 @@ If you prefer to edit settings files directly:
 
 Third-party marketplaces (like this one) have auto-update **disabled by default**. To get updates:
 
-**Option 1: Enable auto-updates (recommended)**
+**Option 1: Enable auto-updates via settings (recommended)**
+
+Add `"autoUpdate": true` to your marketplace configuration:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "knife-edge-software-claude-tools": {
+      "source": {
+        "source": "github",
+        "repo": "Knife-Edge-Software/claude-tools"
+      },
+      "autoUpdate": true
+    }
+  }
+}
+```
+
+With auto-update enabled, restarting Claude Code will automatically fetch the latest version.
+
+**Option 2: Enable auto-updates via UI**
 1. Run `/plugin` in Claude Code
 2. Go to **Marketplaces** tab
 3. Find `knife-edge-software-claude-tools`
 4. Toggle **auto-update** on
-
-With auto-update enabled, restarting Claude Code will automatically fetch the latest version.
 
 **Option 2: Manual update**
 ```bash

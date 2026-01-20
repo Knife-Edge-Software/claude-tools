@@ -154,10 +154,6 @@ claude --plugin-dir /path/to/claude-tools/plugins/ke
 3. Test with `claude --plugin-dir ./plugins/ke`
 4. Submit a PR
 
-## License
-
-MIT
-
 ---
 
 ## Advanced

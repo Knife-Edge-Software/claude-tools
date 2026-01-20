@@ -9,19 +9,30 @@ Analyze all open issues to detect dependencies, determine optimal execution orde
 ## Usage
 
 ```
-/ke:map [issue-numbers] [--label <label>] [--milestone <milestone>]
+/ke:map [milestone-name | issue-numbers] [--label <label>]
 ```
 
 - With no arguments, analyzes all open issues
+- With a milestone name (e.g., `/ke:map "Sprint 1"`), analyzes all open issues in that milestone
 - With issue numbers (e.g., `/ke:map 42 45 47 50`), analyzes only those issues
 - Use `--label` to filter to specific labels (e.g., `--label bug`)
-- Use `--milestone` to filter to a specific milestone
 
 ## Instructions
 
 You are tasked with analyzing open issues to detect dependencies, write them to GitHub, and output an execution plan.
 
 ### Step 1: Gather Issues
+
+**Determine argument type:**
+- If `$ARGUMENTS` contains only numbers (e.g., `42 45 47`), treat as issue numbers
+- If `$ARGUMENTS` is non-numeric text (e.g., `Sprint 1`, `v2.0`), treat as milestone name
+- If `$ARGUMENTS` is empty, fetch all open issues
+
+**If a milestone name is provided** (e.g., `/ke:map "Sprint 1"`):
+```bash
+# Fetch all open issues in that milestone
+gh issue list --state open --milestone "Sprint 1" --json number,title,body,labels,milestone --limit 100
+```
 
 **If specific issue numbers are provided** (e.g., `/ke:map 42 45 47`):
 ```bash
@@ -31,12 +42,12 @@ gh issue view 45 --json number,title,body,labels,milestone
 gh issue view 47 --json number,title,body,labels,milestone
 ```
 
-**If no issue numbers provided**, fetch all open issues (or filtered subset):
+**If no arguments provided**, fetch all open issues (or filtered by --label if specified):
 ```bash
 # All open issues
 gh issue list --state open --json number,title,body,labels,milestone --limit 100
 
-# Or filtered by label/milestone
+# Or filtered by label
 gh issue list --state open --label "bug" --json number,title,body,labels,milestone
 ```
 

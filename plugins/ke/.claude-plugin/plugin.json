@@ -1,7 +1,7 @@
 {
   "name": "ke",
   "description": "Claude Code plugin for Knife Edge Software team - issue management, C++ flight sim expertise",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": {
     "name": "Knife Edge Software"
   },

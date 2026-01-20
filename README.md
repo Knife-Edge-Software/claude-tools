@@ -20,6 +20,18 @@ Then enable auto-updates so you always have the latest version:
 
 That's it! The `/ke:plan`, `/ke:fix`, and other commands are now available.
 
+## Development / Testing
+
+For local development and testing:
+
+```bash
+# Clone the repo
+git clone https://github.com/Knife-Edge-Software/claude-tools.git
+
+# Run Claude Code with the plugin (note: plugin is in plugins/ke/ subdirectory)
+claude --plugin-dir /path/to/claude-tools/plugins/ke
+```
+
 ## Commands
 
 All commands use the `ke:` namespace prefix.
@@ -195,14 +207,3 @@ claude plugin update ke@knife-edge-software-claude-tools
 /plugin marketplace update knife-edge-software-claude-tools
 ```
 
-### Local Development
-
-For local development and testing:
-
-```bash
-# Clone the repo
-git clone https://github.com/Knife-Edge-Software/claude-tools.git
-
-# Run Claude Code with the plugin (note: plugin is in plugins/ke/ subdirectory)
-claude --plugin-dir /path/to/claude-tools/plugins/ke
-```

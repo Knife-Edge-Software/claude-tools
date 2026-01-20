@@ -122,7 +122,7 @@ When you need a formal PR review:
 4. `/ke:pr 42` - Push and create pull request
 5. `/ke:close 42` - Merge and cleanup (after PR approved)
 
-### Batch
+### Parallel
 For working through multiple issues efficiently:
 1. `/ke:plan 42 43 44 45` - Plan all issues
 2. `/ke:map` - Analyze dependencies and get execution plan

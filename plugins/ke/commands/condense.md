@@ -9,10 +9,15 @@ Clean up a GitHub issue by consolidating all information into a clear requiremen
 ## Usage
 
 ```
-/ke:condense <issue-number> [--dry-run]
+/ke:condense <issue-number> [--dry-run] [--keep-backups <count>]
+/ke:condense --rollback <issue-number>
+/ke:condense --cleanup [issue-number]
 ```
 
 - Use `--dry-run` to preview the condensed version without updating the issue
+- Use `--keep-backups <count>` to specify how many backups to keep per issue (default: 3)
+- Use `--rollback <issue-number>` to restore an issue from backup
+- Use `--cleanup` to remove old backup files (optionally for a specific issue)
 
 ## Instructions
 
@@ -26,7 +31,18 @@ The goal is to create a clean, authoritative specification by merging all discus
 
 **Parse arguments:**
 - Check for `--dry-run` flag
+- Check for `--rollback <issue-number>` flag
+- Check for `--cleanup [issue-number]` flag
+- Check for `--keep-backups <count>` flag (default: 3)
 - Extract issue number
+
+**If `--cleanup` is present:**
+- Skip to the Cleanup section (see end of document)
+- Do not proceed with normal condensation
+
+**If `--rollback` is present:**
+- Skip to the Rollback section
+- Do not proceed with normal condensation
 
 **If `--dry-run` is present:**
 - Generate condensed version but DO NOT update the issue
@@ -685,6 +701,202 @@ gh issue edit 42 --body-file <path-to-backup-body>
 
 Which backup would you like to restore? (1-3, default: 1)
 ```
+
+### Automatic Cleanup After Condensation
+
+After successful condensation (not in dry-run mode), automatically clean up old backups:
+
+```bash
+# Count existing backups for this issue
+BACKUP_COUNT=$(ls -1 .claude/backup-issue-<issue-number>-*.json 2>/dev/null | wc -l)
+
+# If more than --keep-backups count (default 3), remove oldest
+if [ $BACKUP_COUNT -gt $KEEP_BACKUPS ]; then
+  # Keep only the N most recent backups
+  ls -1t .claude/backup-issue-<issue-number>-*.json | tail -n +$((KEEP_BACKUPS + 1)) | xargs rm -f
+fi
+```
+
+**Report cleanup:**
+```markdown
+### Backup Management
+
+**Created:** `.claude/backup-issue-42-20260123-143000.json`
+**Cleaned up:** 2 old backups (keeping 3 most recent)
+**Remaining backups:** 3
+```
+
+**If no cleanup needed:**
+```markdown
+### Backup Management
+
+**Created:** `.claude/backup-issue-42-20260123-143000.json`
+**Total backups for this issue:** 2 (limit: 3)
+```
+
+### Manual Cleanup Command
+
+When invoked with `--cleanup`:
+
+```bash
+/ke:condense --cleanup [issue-number]
+```
+
+**If issue number is specified:**
+
+```bash
+# List backups for specific issue
+ls -1t .claude/backup-issue-<issue-number>-*.json 2>/dev/null
+```
+
+Show user the backups and ask what to do:
+
+```markdown
+## Cleanup Backups for Issue #42
+
+Found 5 backups:
+
+1. `.claude/backup-issue-42-20260124-100000.json` (2026-01-24 10:00) [newest]
+2. `.claude/backup-issue-42-20260123-150000.json` (2026-01-23 15:00)
+3. `.claude/backup-issue-42-20260123-143000.json` (2026-01-23 14:30)
+4. `.claude/backup-issue-42-20260122-120000.json` (2026-01-22 12:00)
+5. `.claude/backup-issue-42-20260121-090000.json` (2026-01-21 09:00) [oldest]
+
+**Options:**
+
+A) Keep newest 3, delete older 2 (recommended)
+B) Keep newest 1, delete older 4
+C) Delete all backups (⚠️ cannot rollback after this)
+D) Keep specific backups (you choose which)
+E) Cancel
+
+What would you like to do? (A/B/C/D/E)
+```
+
+**If user chooses A (recommended):**
+```bash
+ls -1t .claude/backup-issue-42-*.json | tail -n +4 | xargs rm -f
+```
+
+**Report:**
+```markdown
+✅ Deleted 2 old backups, kept 3 most recent.
+
+Remaining backups:
+- `.claude/backup-issue-42-20260124-100000.json` (2026-01-24 10:00)
+- `.claude/backup-issue-42-20260123-150000.json` (2026-01-23 15:00)
+- `.claude/backup-issue-42-20260123-143000.json` (2026-01-23 14:30)
+```
+
+**If no issue number specified (cleanup all):**
+
+```bash
+# Find all backup files
+ls -1 .claude/backup-issue-*.json 2>/dev/null
+```
+
+**Group by issue and show summary:**
+
+```markdown
+## Cleanup All Backups
+
+Found backups for 4 issues:
+
+| Issue | Backups | Oldest | Newest | Total Size |
+|-------|---------|--------|--------|------------|
+| #42   | 5       | 5 days ago | Today | 2.3 MB |
+| #45   | 8       | 10 days ago | 2 days ago | 4.1 MB |
+| #47   | 2       | 3 days ago | Today | 890 KB |
+| #51   | 12      | 30 days ago | Today | 6.8 MB |
+
+**Total:** 27 backups, 14.1 MB
+
+**Options:**
+
+A) Keep newest 3 per issue, delete rest (would delete 15 backups, save ~8 MB)
+B) Delete backups older than 7 days (would delete 8 backups, save ~3 MB)
+C) Delete backups older than 30 days (would delete 2 backups, save ~400 KB)
+D) Clean specific issues only (you choose)
+E) Delete all backups (⚠️ cannot rollback any issues after this)
+F) Cancel
+
+What would you like to do? (A/B/C/D/E/F)
+```
+
+**If user chooses A:**
+```bash
+# For each issue, keep only newest 3
+for issue in $(ls .claude/backup-issue-*.json | sed 's/.*backup-issue-\([0-9]*\)-.*/\1/' | sort -u); do
+  ls -1t .claude/backup-issue-$issue-*.json | tail -n +4 | xargs rm -f
+done
+```
+
+**Report:**
+```markdown
+✅ Cleanup complete
+
+**Deleted:** 15 backups (~8 MB freed)
+**Kept:** 12 backups (3 per issue)
+
+Remaining backups:
+- Issue #42: 3 backups
+- Issue #45: 3 backups
+- Issue #47: 2 backups
+- Issue #51: 3 backups
+
+To remove more, run `/ke:condense --cleanup` again.
+```
+
+### Cleanup on Dry-Run Files
+
+Dry-run files (`.claude/condense-<issue-number>-*.md`) should also be cleaned up:
+
+```bash
+# After user reviews and decides not to apply, or after applying
+# Ask if they want to keep the dry-run files
+
+```markdown
+## Dry-Run Files
+
+The following preview files were created:
+- `.claude/condense-42-description.md`
+- `.claude/condense-42-plan.md`
+
+Do you want to:
+A) Keep them for reference
+B) Delete them (cleanup)
+
+(default: B after 7 days)
+```
+
+**Or automatically delete dry-run files older than 7 days:**
+
+```bash
+# During cleanup command, also clean old dry-run files
+find .claude -name "condense-*-*.md" -mtime +7 -delete
+```
+
+### Backup Management Best Practices
+
+**Default behavior:**
+- Automatically keeps 3 most recent backups per issue
+- Cleans up older backups after successful condensation
+- User can override with `--keep-backups <count>`
+
+**Storage considerations:**
+- Each backup is typically 10-500 KB (depends on issue size)
+- Backups are JSON format (includes full text + metadata)
+- Recommend periodic cleanup for repos with many issues
+
+**When to keep more backups:**
+- Issues that are frequently updated
+- Critical issues where history is important
+- During experimental condensation (use `--keep-backups 10`)
+
+**When to keep fewer backups:**
+- Storage constrained environments
+- Issues that rarely change
+- After successful rollback testing (can safely delete)
 
 ### Edge Cases
 

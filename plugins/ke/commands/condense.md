@@ -9,8 +9,10 @@ Clean up a GitHub issue by consolidating all information into a clear requiremen
 ## Usage
 
 ```
-/ke:condense <issue-number>
+/ke:condense <issue-number> [--dry-run]
 ```
+
+- Use `--dry-run` to preview the condensed version without updating the issue
 
 ## Instructions
 
@@ -20,7 +22,18 @@ You are tasked with consolidating a GitHub issue into two essential parts:
 
 The goal is to create a clean, authoritative specification by merging all discussion, decisions, and refinements into these two sections.
 
-### Step 1: Fetch the Full Issue
+### Step 1: Parse Arguments and Fetch the Full Issue
+
+**Parse arguments:**
+- Check for `--dry-run` flag
+- Extract issue number
+
+**If `--dry-run` is present:**
+- Generate condensed version but DO NOT update the issue
+- Save output to local files: `.claude/condense-<issue-number>-description.md` and `.claude/condense-<issue-number>-plan.md`
+- Show preview and ask if user wants to apply changes
+
+**Fetch the full issue:**
 
 Get the issue with all comments:
 
@@ -58,6 +71,41 @@ Read through the issue body and all comments. Categorize each piece of informati
 - Test requirements
 - Edge cases to handle
 - Error handling approach
+
+**Images and Attachments:**
+- Screenshots (especially for UI issues)
+- Mockups and diagrams
+- Architecture diagrams
+- Error screenshots
+- Other visual assets
+
+**Detect images in markdown:**
+```
+![alt text](url)
+```
+
+**Track each image:**
+- Source (which comment or issue body)
+- Context (what it demonstrates)
+- Relevance (requirements or implementation)
+
+**Preserve images by:**
+- Re-embedding in appropriate section (requirements for mockups, implementation for architecture diagrams)
+- Adding descriptive context: "Screenshot showing error state when authentication fails:"
+- Maintaining original alt text and URLs
+
+**Cross-References to Preserve:**
+- Issue references (`#42`, `#43`, `Depends on #X`, `Blocked by #Y`)
+- Pull request references (`PR #123`)
+- Commit references (`commit abc1234`)
+- External links (documentation, Figma designs, API specs, etc.)
+- Repository paths (`owner/repo#123`)
+
+**Handle cross-references:**
+- Keep all issue/PR references intact in context
+- Preserve dependency statements verbatim
+- Include external resource links with descriptive text
+- Example: "See [Figma mockup](url) for complete UI specification"
 
 **Metadata/Discussion (exclude from consolidation):**
 - Acknowledgments ("looks good", "thanks", etc.)
@@ -159,11 +207,25 @@ Create a new issue description that includes:
 ### UI/UX Specifications
 [If applicable - detailed UI behavior, mockups, accessibility needs]
 
+**Mockups:**
+![Login form mockup](url)
+*Shows the login form with email/password fields and "Remember me" checkbox*
+
+### Visual Assets
+[If applicable - screenshots, diagrams that illustrate requirements]
+
 ## Dependencies
 
 [If applicable]
 - Depends on #X
 - Blocked by #Y
+
+## Related Resources
+
+[If applicable - external links]
+- [Figma Design](url)
+- [API Documentation](url)
+- Related to PR #123
 
 ## Success Metrics
 
@@ -172,6 +234,7 @@ Create a new issue description that includes:
 ---
 
 *Issue consolidated by `/ke:condense` on [date]*
+*Backup saved to: `.claude/backup-issue-<number>-<timestamp>.json`*
 ```
 
 **Key principles:**
@@ -180,6 +243,8 @@ Create a new issue description that includes:
 - Be organized - group related information
 - Be actionable - write as checklist where possible
 - Preserve context - explain the "why" not just the "what"
+- **Preserve all images** - re-embed with descriptive context
+- **Preserve cross-references** - keep all issue/PR/external links intact
 
 ### Step 6: Consolidate Implementation (Single Comment)
 
@@ -190,6 +255,11 @@ Create a single implementation plan comment:
 
 ### Overview
 [Brief description of technical approach]
+
+### Architecture
+[If applicable - include architecture diagrams from comments]
+![Architecture diagram](url)
+*Shows the flow between authentication middleware, session store, and user service*
 
 ### Files to Modify
 - `path/to/file1.ts` - [what changes]
@@ -231,6 +301,12 @@ interface User {
 - Integration tests: [What to test]
 - Manual testing: [What to verify]
 
+### Related Work
+[If applicable]
+- Builds on PR #120
+- See commit abc1234 for similar pattern
+- Related to issue #45
+
 ### Success Criteria
 
 After implementation:
@@ -250,8 +326,88 @@ After implementation:
 - Be complete - cover all aspects (happy path, errors, edge cases, tests)
 - Reference the requirements - tie back to acceptance criteria
 - Include examples - code snippets where helpful
+- **Preserve architecture diagrams** - re-embed with context
+- **Preserve cross-references** - link to related PRs, commits, issues
 
-### Step 7: Update the Issue
+### Step 7: Create Backup
+
+**IMPORTANT:** Before making any changes to the issue, create a backup of the original state.
+
+```bash
+# Create backup directory if it doesn't exist
+mkdir -p .claude
+
+# Fetch full issue data including all comments
+gh issue view <issue-number> --comments --json number,title,body,comments,createdAt,updatedAt > .claude/backup-issue-<issue-number>-$(date +%Y%m%d-%H%M%S).json
+
+# Store the backup file path for the summary report
+BACKUP_FILE=".claude/backup-issue-<issue-number>-$(date +%Y%m%d-%H%M%S).json"
+```
+
+**Backup includes:**
+- Original issue body
+- All comments with authors and timestamps
+- Comment IDs (for potential restoration)
+- Metadata (created/updated timestamps)
+
+**Display confirmation:**
+```markdown
+## Backup Created
+
+Original issue saved to: `$BACKUP_FILE`
+
+This backup can be used to restore the issue if needed using `/ke:condense --rollback <issue-number>`.
+```
+
+### Step 8: Preview or Apply Changes
+
+**If `--dry-run` flag is present:**
+
+Save the condensed versions to local files for review:
+
+```bash
+# Save condensed description
+cat > .claude/condense-<issue-number>-description.md << 'EOF'
+[Condensed description content]
+EOF
+
+# Save condensed implementation plan
+cat > .claude/condense-<issue-number>-plan.md << 'EOF'
+[Condensed implementation plan content]
+EOF
+```
+
+**Display preview:**
+```markdown
+## Dry Run - Preview Generated
+
+**Condensed description saved to:**
+`.claude/condense-<issue-number>-description.md`
+
+**Condensed implementation plan saved to:**
+`.claude/condense-<issue-number>-plan.md`
+
+**To review:**
+```bash
+cat .claude/condense-<issue-number>-description.md
+cat .claude/condense-<issue-number>-plan.md
+```
+
+**To apply these changes:**
+Run `/ke:condense <issue-number>` without the `--dry-run` flag.
+
+**To manually apply:**
+```bash
+gh issue edit <issue-number> --body-file .claude/condense-<issue-number>-description.md
+gh issue comment <issue-number> --body-file .claude/condense-<issue-number>-plan.md
+```
+```
+
+**Stop here if dry-run mode. Do not update the issue.**
+
+**If NOT dry-run mode, proceed with updating:**
+
+### Step 9: Update the Issue
 
 **Update the issue description:**
 
@@ -277,7 +433,7 @@ EOF
 gh issue comment <issue-number> --body-file /tmp/implementation-plan.md
 ```
 
-### Step 8: Handle Old Comments (Ask User)
+### Step 10: Handle Old Comments (Ask User)
 
 Present the user with options for old comments:
 
@@ -332,12 +488,21 @@ done
 
 **Note:** Before deleting, show the list of comments that will be deleted and ask for final confirmation.
 
-### Step 9: Generate Summary Report
+### Step 11: Generate Summary Report
 
 ```markdown
 ## Condensation Complete ✅
 
 Issue #42 has been consolidated.
+
+### Backup
+
+**Original issue saved to:** `.claude/backup-issue-42-20260123-143000.json`
+
+To restore the original issue if needed:
+```bash
+/ke:condense --rollback 42
+```
 
 ### Changes Made
 
@@ -345,6 +510,8 @@ Issue #42 has been consolidated.
 - Consolidated information from: original body, comments #2, #5, #7
 - Added clear problem statement and acceptance criteria
 - Organized requirements into functional/non-functional sections
+- Preserved 2 mockup images from comments #5 and #7
+- Preserved 3 cross-references to related issues (#45, #47) and external docs
 - Total length: ~500 words
 
 **Implementation Plan (Comment)**
@@ -352,6 +519,8 @@ Issue #42 has been consolidated.
 - Created step-by-step implementation guide with 4 major steps
 - Added error handling and edge case sections
 - Added testing strategy
+- Preserved 1 architecture diagram from comment #4
+- Preserved cross-references to PR #120 and commit abc1234
 - Total length: ~800 words
 
 **Old Comments:** [Preserved with historical note / Deleted]
@@ -363,6 +532,8 @@ Issue #42 has been consolidated.
 - ✅ Error handling specifications
 - ✅ Testing requirements
 - ✅ UI/UX specifications
+- ✅ All images and diagrams (3 total)
+- ✅ All cross-references (issues, PRs, commits, external links)
 
 ### Information Removed
 - ❌ "Looks good" / "+1" comments (8 comments)
@@ -374,6 +545,7 @@ Issue #42 has been consolidated.
 1. Review the condensed issue: `gh issue view 42 --comments`
 2. If everything looks correct, the issue is ready for `/ke:plan` or `/ke:branchfix`
 3. If anything is missing, add it to the issue description or implementation comment
+4. If you need to undo: `/ke:condense --rollback 42`
 
 **Issue URL:** [GitHub URL]
 ```
@@ -388,6 +560,8 @@ Issue #42 has been consolidated.
 - Dependencies and blockers
 - Security, performance, accessibility requirements
 - Edge cases and error scenarios
+- **All images** (screenshots, mockups, diagrams) with descriptive context
+- **All cross-references** (issues, PRs, commits, external links)
 
 **What to exclude:**
 - Social comments ("thanks", "LGTM", "+1")
@@ -407,6 +581,110 @@ Issue #42 has been consolidated.
 - If `gh issue edit` fails, report the error and save the condensed version to local files for manual upload
 - If unable to parse comments, ask user to check issue format
 - If the issue is too complex (>50 comments), warn that manual review is recommended
+
+### Rollback Functionality
+
+To restore an issue to its original state:
+
+```bash
+/ke:condense --rollback <issue-number>
+```
+
+**Rollback process:**
+
+1. Look for the most recent backup file in `.claude/backup-issue-<number>-*.json`
+2. If multiple backups exist, show list and ask user which to restore (default: most recent)
+3. Parse the backup JSON to extract:
+   - Original issue body
+   - All original comments with their content and order
+4. **Warning:** Display what will be changed:
+   ```markdown
+   ## Rollback Issue #42
+
+   This will restore the issue to its state from backup:
+   **Backup:** `.claude/backup-issue-42-20260123-143000.json`
+   **Backup date:** 2026-01-23 14:30:00
+
+   **Current state:**
+   - Issue body: 500 words (condensed format)
+   - Comments: 1 (implementation plan)
+
+   **After rollback:**
+   - Issue body: 300 words (original format)
+   - Comments: 12 (original comments restored)
+
+   ⚠️ **Warning:** This will overwrite the current issue description. The current state will be backed up first.
+
+   Proceed? (yes/no)
+   ```
+
+5. If user confirms, create a backup of the current state before rolling back
+6. Restore the issue body from backup:
+   ```bash
+   # Extract original body from backup
+   jq -r '.body' .claude/backup-issue-42-20260123-143000.json > /tmp/restore-body.md
+   gh issue edit <issue-number> --body-file /tmp/restore-body.md
+   ```
+
+7. Note about comments:
+   ```markdown
+   **Note:** GitHub API does not support restoring deleted comments or changing comment order.
+
+   **Options:**
+   A) Leave current comments as-is (issue body restored, comments remain)
+   B) Manually restore comments from backup (you'll need to copy/paste from backup file)
+
+   **Backup file location:** `.claude/backup-issue-42-20260123-143000.json`
+
+   To view original comments:
+   ```bash
+   jq -r '.comments[] | "---\n\(.author.login) at \(.createdAt):\n\(.body)\n"' .claude/backup-issue-42-20260123-143000.json
+   ```
+   ```
+
+8. Generate rollback report:
+   ```markdown
+   ## Rollback Complete ✅
+
+   Issue #42 has been restored to its original state from backup.
+
+   **Restored from:** `.claude/backup-issue-42-20260123-143000.json`
+   **Current state backed up to:** `.claude/backup-issue-42-20260123-150000.json`
+
+   **Changes:**
+   - Issue body: Restored to original (pre-condensation)
+   - Comments: [Status of comments]
+
+   **Next steps:**
+   1. Review the restored issue: `gh issue view 42`
+   2. If you want to condense again with different settings: `/ke:condense 42`
+   ```
+
+**Edge cases:**
+
+**No backup found:**
+```markdown
+❌ No backup found for issue #42
+
+Searched in: `.claude/backup-issue-42-*.json`
+
+Cannot rollback without a backup. If you have a backup file elsewhere, you can manually restore using:
+
+```bash
+gh issue edit 42 --body-file <path-to-backup-body>
+```
+```
+
+**Multiple backups:**
+```markdown
+## Multiple Backups Found for Issue #42
+
+1. `.claude/backup-issue-42-20260123-143000.json` (2026-01-23 14:30) - before condensation
+2. `.claude/backup-issue-42-20260123-150000.json` (2026-01-23 15:00) - before rollback
+3. `.claude/backup-issue-42-20260124-100000.json` (2026-01-24 10:00) - before condensation
+
+Which backup would you like to restore? (1-3, default: 1)
+```
 
 ### Edge Cases
 

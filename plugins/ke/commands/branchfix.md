@@ -9,12 +9,13 @@ Implement an entire GitHub issue in a dedicated git worktree, keeping the main w
 ## Usage
 
 ```
-/ke:branchfix [issue-numbers] [--split]
+/ke:branchfix [issue-numbers] [--split] [--from <branch>]
 ```
 
 - Issue number is optional if an issue has already been discussed in the current conversation.
 - Multiple issue numbers can be provided (e.g., `42 43 44` or `42, 43, 44`)
 - Use `--split` to create separate branches/worktrees for each issue (see below)
+- Use `--from <branch>` to specify the parent branch (for dependency chains)
 
 ## Instructions
 
@@ -25,6 +26,7 @@ You are tasked with fully implementing a GitHub issue in a separate git worktree
 - If `$ARGUMENTS` is provided and non-empty, parse it for:
   - **Issue numbers**: Multiple can be provided (e.g., `42 43 44` or `42, 43, 44` or `#42 #43`)
   - **Flags**: Check for `--split` flag to create separate worktrees for each issue
+  - **Parent branch**: Check for `--from <branch>` to specify the base branch for chain-based branching
   - Extract all numeric issue identifiers from the arguments
 - Otherwise, infer the issue number using these sources (in priority order):
   1. Conversation context (previously discussed issue, URL mentioned, `gh issue view` output)
@@ -65,6 +67,12 @@ You are tasked with fully implementing a GitHub issue in a separate git worktree
 - You want to create **separate PRs** for each issue
 - You want to **parallelize review** (others can review one PR while you work on another)
 - Issues have **different base branches** or release targets
+
+**When to use `--from <branch>`:**
+- Issue **depends on another issue** that has its own branch (e.g., `--from issue-42`)
+- Building a **dependency chain** where each issue branches from its parent
+- Used by `/ke:batch` for automated orchestration of dependency graphs
+- Enables **bottom-up merging**: merge leaf → parent → grandparent → main
 
 ### Step 1: Fetch the Issue and Plan
 
@@ -111,11 +119,18 @@ git worktree list | grep "issue-<issue-number>"
 
 Create a new branch and worktree for this issue:
 
+**Determine the base branch:**
+- If `--from <branch>` is specified, use that branch as the base
+- Otherwise, use the current branch (usually `main` or `master`)
+- For dependency chains, `--from` enables branching from a parent issue's branch (e.g., `--from issue-42` when implementing an issue that depends on #42)
+
 **For single issue or first issue in a batch (without `--split`):**
 1. Create a branch named `issue-<issue-number>` (e.g., `issue-42`)
 2. Create a worktree in a sibling directory named `<repo-name>-issue-<issue-number>`
    - For example, if working in `/projects/myapp`, create worktree at `/projects/myapp-issue-42`
-3. Use: `git worktree add ../<repo-name>-issue-<issue-number> -b issue-<issue-number>`
+3. Use: `git worktree add ../<repo-name>-issue-<issue-number> -b issue-<issue-number> [base-branch]`
+   - Without `--from`: `git worktree add ../myapp-issue-42 -b issue-42`
+   - With `--from issue-20`: `git worktree add ../myapp-issue-42 -b issue-42 issue-20`
 
 **For subsequent issues in a batch (without `--split`):**
 - Skip worktree creation - continue using the worktree created for the first issue
@@ -140,9 +155,21 @@ Example message (single issue):
 ```
 Created git worktree for issue #42:
 - Branch: issue-42
+- Based on: main
 - Location: /projects/myapp-issue-42
 
 When implementation is complete, use /ke:close to merge and remove the worktree.
+```
+
+Example message (with `--from` for dependency chain):
+```
+Created git worktree for issue #45 (depends on #42):
+- Branch: issue-45
+- Based on: issue-42
+- Location: /projects/myapp-issue-45
+
+This branch is based on issue-42's branch for proper dependency chaining.
+When implementation is complete, use /ke:cascade to merge the chain back to main.
 ```
 
 Example message (multiple issues, default):

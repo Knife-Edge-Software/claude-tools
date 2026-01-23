@@ -9,14 +9,15 @@ Analyze all open issues to detect dependencies, determine optimal execution orde
 ## Usage
 
 ```
-/ke:map [issue-numbers] [--milestone <name>] [--label <label>]
+/ke:map [issue-numbers] [--milestone <name>] [--label <label>] [--json]
 ```
 
 - With no arguments, analyzes all open issues
 - With issue numbers (e.g., `/ke:map 42 45 47`), analyzes only those issues
 - Use `--milestone <name>` to filter to a specific milestone (e.g., `--milestone "Sprint 1"`)
 - Use `--label <label>` to filter to specific labels (e.g., `--label bug`)
-- Filters can be combined: `/ke:map --milestone "Sprint 1" --label bug`
+- Use `--json` to output machine-readable JSON (writes to `ke-batch-plan.json`)
+- Filters can be combined: `/ke:map --milestone "Sprint 1" --label bug --json`
 
 ## Instructions
 
@@ -27,7 +28,8 @@ You are tasked with analyzing open issues to detect dependencies, write them to 
 **Parse arguments:**
 1. Extract `--milestone <name>` flag if present (value may be quoted, e.g., `"Sprint 1"`)
 2. Extract `--label <label>` flag if present
-3. Remaining arguments are treated as issue numbers
+3. Extract `--json` flag if present (enables machine-readable output)
+4. Remaining arguments are treated as issue numbers
 
 **If `--milestone` is provided** (e.g., `/ke:map --milestone "Sprint 1"`):
 ```bash
@@ -121,24 +123,27 @@ Identify:
 - **Chains** - Linear sequences of dependencies
 - **Parallel groups** - Issues that can run simultaneously
 
-### Step 6: Group into Tracks
+### Step 6: Build Dependency Trees
 
-Organize issues into parallel tracks:
+Organize issues into dependency trees for the output:
 
-**Track assignment rules:**
-1. Issues with file overlap go in the SAME track (sequential)
-2. Independent issues go in DIFFERENT tracks (parallel)
-3. Balance track sizes when possible
-4. Minimize total tracks (aim for 2-4)
+**Tree construction rules:**
+1. **Root nodes:** Issues with no dependencies become tree roots (can start immediately)
+2. **Child nodes:** Issues that depend on others become children of their dependencies
+3. **Batching:** Issues at the same level with no file overlap can be combined on one line
+4. **Branching:** When two issues both depend on the same parent but conflict with each other (file overlap), they become separate branches
+5. **Separate trees:** Fully independent issue groups become separate trees
 
-**Within each track, order by:**
-1. Dependency order (dependencies first)
-2. Complexity (simpler issues first to establish patterns)
-3. Risk (lower risk first)
+**Ordering within trees:**
+1. Dependency order (parent before child)
+2. Complexity (simpler issues first when batching)
+3. Risk (lower risk first when batching)
 
 ### Step 7: Output the Plan
 
-Generate two sections:
+**If `--json` flag is present**, skip to Step 7b for JSON output.
+
+**Otherwise**, generate the human-readable output below:
 
 #### Section 1: Dependency Updates Applied
 
@@ -163,40 +168,66 @@ No new dependencies detected. Existing dependencies are up to date.
 
 #### Section 2: Execution Plan
 
+Output an ASCII dependency tree using box-drawing characters. The tree structure shows:
+- **Root level (no indent):** Issues that can start immediately
+- **Child level (indented with └──):** Issues that depend on the parent completing
+- **Multiple issues on one line:** Can be batched together (no file overlap)
+- **Separate trees:** Fully independent tracks that can run in parallel terminals
+
+**Example output:**
+
 ```markdown
 ## Execution Plan
 
-Run these in separate terminals for parallel execution:
+```
+/ke:branchfix 42 43 44
+│
+├── /ke:branchfix 45 46         # 45←42, 46←43 (can batch - no file overlap)
+│       │
+│       └── /ke:branchfix 47    # ←45
+│               │
+│               └── /ke:branchfix 48    # ←47
+│
+└── /ke:branchfix 49            # ←44 (file conflict with 45, separate branch)
+        │
+        └── /ke:branchfix 50    # ←49
 
-### Track A: Auth System
-Issues with shared files in `src/auth/`
 
-```bash
-# Terminal 1
-/ke:branchfix 42      # Add auth middleware
-# After #42 merged to main:
-/ke:branchfix 45      # Add login endpoint
-/ke:branchfix 47      # Add logout endpoint
+/ke:branchfix 51
+│
+└── /ke:branchfix 52            # ←51
+        │
+        └── /ke:branchfix 53    # ←52
 ```
 
-### Track B: UI Components
-Issues with shared files in `src/components/`
+**Reading the tree:**
+- `42 43 44` and `51` are at root level — start immediately in parallel terminals
+- `45 46` can batch because 45 needs 42 and 46 needs 43 (both satisfied by parent), and they don't share files
+- `49` is a separate branch from `45 46` because they conflict on `src/auth/middleware.ts`
+- The two trees are fully independent — run them in separate terminals
 
-```bash
-# Terminal 2
-/ke:branchfix 50      # Button hover states
-# After #50 merged to main:
-/ke:branchfix 51      # Button loading states
+**Parallel opportunities:**
+- Root-level commands across trees
+- Same-level siblings within a tree (if no file conflicts)
+
+**Batching rules applied:**
+- Issues batched only when: no explicit dependency between them AND no file overlap
+- File conflicts force sequential execution even without explicit dependencies
 ```
 
-### Track C: Independent
-No file overlap, can run anytime
+**Formatting rules:**
+1. Use `│`, `├──`, and `└──` box-drawing characters
+2. Batch issues on one line when they have no file overlap and their dependencies are all satisfied by the same parent
+3. Add brief comments showing dependency arrows (e.g., `# 45←42, 46←43`)
+4. Note file conflicts when they force branching (e.g., `# file conflict with 45`)
+5. Separate independent trees with a blank line
+6. After the tree, include a "Reading the tree" section explaining the specific batching decisions
 
-```bash
-# Terminal 3
-/ke:branchfix 53 54   # Date parsing + typo fixes (batch - no overlap)
-```
+#### Section 3: Additional Information
 
+After the tree, include these sections if applicable:
+
+```markdown
 ### Blocked
 | Issue | Blocked By | Reason |
 |-------|-----------|--------|
@@ -205,6 +236,131 @@ No file overlap, can run anytime
 ### Unplanned (run /ke:plan first)
 - #52: No implementation plan found
 - #56: No implementation plan found
+```
+
+### Step 7b: JSON Output (when `--json` flag is present)
+
+Instead of the ASCII tree, output a machine-readable JSON structure and write it to `ke-batch-plan.json` in the repository root.
+
+**JSON Schema:**
+
+```json
+{
+  "version": 1,
+  "timestamp": "2026-01-22T10:00:00Z",
+  "repository": "owner/repo",
+  "base_branch": "main",
+  "tracks": [
+    {
+      "id": "A",
+      "name": "Auth System",
+      "description": "Issues with shared files in src/auth/",
+      "issues": [
+        {
+          "number": 42,
+          "title": "Add auth middleware",
+          "depends_on": [],
+          "files": ["src/auth/middleware.ts"],
+          "has_plan": true,
+          "in_progress": false
+        },
+        {
+          "number": 45,
+          "title": "Add login endpoint",
+          "depends_on": [42],
+          "files": ["src/auth/middleware.ts", "src/auth/login.ts"],
+          "has_plan": true,
+          "in_progress": false
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Independent",
+      "description": "No file overlap with other issues",
+      "issues": [
+        {
+          "number": 51,
+          "title": "Fix typo in README",
+          "depends_on": [],
+          "files": ["README.md"],
+          "has_plan": true,
+          "in_progress": false
+        }
+      ]
+    }
+  ],
+  "blocked": [
+    {
+      "number": 48,
+      "title": "Blocked issue title",
+      "blocked_by": [45],
+      "reason": "Explicit dependency in issue"
+    }
+  ],
+  "unplanned": [52, 56],
+  "in_progress": [
+    {
+      "number": 42,
+      "worktree": "../repo-issue-42",
+      "branch": "issue-42",
+      "uncommitted_files": 3
+    }
+  ]
+}
+```
+
+**Field definitions:**
+
+- `version`: Schema version (always 1 for now)
+- `timestamp`: ISO 8601 timestamp when the plan was generated
+- `repository`: GitHub owner/repo identifier
+- `base_branch`: The branch all root issues should branch from (usually "main")
+- `tracks`: Array of parallel execution tracks (issues within a track are sequential)
+  - `id`: Single letter identifier (A, B, C, ...)
+  - `name`: Human-readable track name
+  - `description`: Why these issues are grouped together
+  - `issues`: Ordered array of issues in this track (execute in order)
+    - `number`: GitHub issue number
+    - `title`: Issue title
+    - `depends_on`: Array of issue numbers this issue depends on
+    - `files`: Array of file paths this issue will modify
+    - `has_plan`: Whether an implementation plan exists
+    - `in_progress`: Whether a worktree already exists
+- `blocked`: Issues that cannot be scheduled (external blockers, etc.)
+- `unplanned`: Issue numbers that lack implementation plans
+- `in_progress`: Issues with existing worktrees
+
+**Track construction:**
+- Each track represents a chain of dependent issues
+- Issues within a track are ordered by dependency (parent before child)
+- Parallel tracks have no file overlap between them
+- The orchestrator can run tracks in parallel terminals
+
+**Write the file:**
+```bash
+# Write JSON to file (use cat with heredoc for proper formatting)
+cat > ke-batch-plan.json << 'EOF'
+{
+  "version": 1,
+  ...
+}
+EOF
+```
+
+**Also display a summary:**
+```markdown
+## Batch Plan Generated
+
+Written to `ke-batch-plan.json`
+
+**Tracks:** 2
+- Track A (Auth System): #42 → #45 → #47
+- Track B (Independent): #51
+
+**Issues:** 4 planned, 2 unplanned, 1 blocked
+
+Use `/ke:batch` to execute this plan automatically.
 ```
 
 ### Step 8: Handle Edge Cases
@@ -236,7 +392,8 @@ Include them in the plan but mark their status:
 ### Important
 
 - DO NOT implement any code changes
-- DO NOT create or modify files (except GitHub issue comments for dependencies)
+- DO NOT create or modify files (except GitHub issue comments for dependencies, and `ke-batch-plan.json` when using `--json`)
 - If an issue lacks a plan, suggest running `/ke:plan` first
 - Detected dependencies are written to issues to create a persistent source of truth
 - Re-running `/ke:map` will read existing dependencies and only add new ones
+- When using `--json`, the plan file can be used by `/ke:batch` for automated execution

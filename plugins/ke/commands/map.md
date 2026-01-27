@@ -130,14 +130,14 @@ Organize issues into dependency trees for the output:
 **Tree construction rules:**
 1. **Root nodes:** Issues with no dependencies become tree roots (can start immediately)
 2. **Child nodes:** Issues that depend on others become children of their dependencies
-3. **Batching:** Issues at the same level with no file overlap can be combined on one line
+3. **Grouping:** Issues at the same level with no file overlap can be combined on one line (processed sequentially in one worktree)
 4. **Branching:** When two issues both depend on the same parent but conflict with each other (file overlap), they become separate branches
-5. **Separate trees:** Fully independent issue groups become separate trees
+5. **Separate trees:** Fully independent issue groups become separate trees (each tree = one terminal, trees run in parallel)
 
 **Ordering within trees:**
 1. Dependency order (parent before child)
-2. Complexity (simpler issues first when batching)
-3. Risk (lower risk first when batching)
+2. Complexity (simpler issues first when grouping)
+3. Risk (lower risk first when grouping)
 
 ### Step 7: Output the Plan
 
@@ -171,8 +171,8 @@ No new dependencies detected. Existing dependencies are up to date.
 Output an ASCII dependency tree using box-drawing characters. The tree structure shows:
 - **Root level (no indent):** Issues that can start immediately
 - **Child level (indented with └──):** Issues that depend on the parent completing
-- **Multiple issues on one line:** Can be batched together (no file overlap)
-- **Separate trees:** Fully independent tracks that can run in parallel terminals
+- **Multiple issues on one line:** Grouped for sequential processing in one worktree (no file overlap between them)
+- **Separate trees:** Fully independent tracks — each tree runs in its own terminal (true parallelism)
 
 **Example output:**
 
@@ -182,7 +182,7 @@ Output an ASCII dependency tree using box-drawing characters. The tree structure
 ```
 /ke:branchfix 42 43 44
 │
-├── /ke:branchfix 45 46         # 45←42, 46←43 (can batch - no file overlap)
+├── /ke:branchfix 45 46         # 45←42, 46←43 (grouped - no file overlap, runs sequentially)
 │       │
 │       └── /ke:branchfix 47    # ←45
 │               │
@@ -201,27 +201,29 @@ Output an ASCII dependency tree using box-drawing characters. The tree structure
 ```
 
 **Reading the tree:**
-- `42 43 44` and `51` are at root level — start immediately in parallel terminals
-- `45 46` can batch because 45 needs 42 and 46 needs 43 (both satisfied by parent), and they don't share files
+- Each tree runs in its own terminal (2 trees = 2 parallel terminals)
+- `/ke:branchfix 42 43 44` processes issues **sequentially** in ONE terminal (42 → 43 → 44, same worktree)
+- `/ke:branchfix 51` runs in a SEPARATE terminal (parallel with the first tree)
+- `45 46` are grouped because 45 needs 42 and 46 needs 43 (both satisfied by parent), and they don't share files
 - `49` is a separate branch from `45 46` because they conflict on `src/auth/middleware.ts`
-- The two trees are fully independent — run them in separate terminals
 
-**Parallel opportunities:**
-- Root-level commands across trees
-- Same-level siblings within a tree (if no file conflicts)
+**Parallelism vs Sequential:**
+- **Parallel:** Separate trees run in separate terminals simultaneously
+- **Sequential:** Issues within a single `/ke:branchfix` command run one after another in the same worktree
 
-**Batching rules applied:**
-- Issues batched only when: no explicit dependency between them AND no file overlap
-- File conflicts force sequential execution even without explicit dependencies
+**Grouping rules applied:**
+- Issues grouped on one line when: no explicit dependency between them AND no file overlap
+- Grouped issues share a worktree and are processed sequentially (not in parallel)
+- File conflicts force separate branches even without explicit dependencies
 ```
 
 **Formatting rules:**
 1. Use `│`, `├──`, and `└──` box-drawing characters
-2. Batch issues on one line when they have no file overlap and their dependencies are all satisfied by the same parent
+2. Group issues on one line when they have no file overlap and their dependencies are all satisfied by the same parent (they will run sequentially in one worktree)
 3. Add brief comments showing dependency arrows (e.g., `# 45←42, 46←43`)
 4. Note file conflicts when they force branching (e.g., `# file conflict with 45`)
 5. Separate independent trees with a blank line
-6. After the tree, include a "Reading the tree" section explaining the specific batching decisions
+6. After the tree, include a "Reading the tree" section explaining the grouping decisions
 
 #### Section 3: Additional Information
 
@@ -373,7 +375,7 @@ No open issues found. Nothing to map.
 **All issues are independent:**
 ```
 All 5 issues are independent with no file overlap.
-Run them in any order, or batch with: /ke:branchfix 42 43 44 45 46
+Run them in any order, or process sequentially in one worktree with: /ke:branchfix 42 43 44 45 46
 ```
 
 **Circular dependencies detected:**

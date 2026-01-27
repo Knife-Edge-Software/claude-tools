@@ -217,6 +217,27 @@ Output an ASCII dependency tree using box-drawing characters. The tree structure
 - File conflicts force separate branches even without explicit dependencies
 ```
 
+**Converging tracks example:**
+
+When an issue depends on multiple parallel tracks (e.g., documentation that must wait for all implementation), show the tracks converging:
+
+```
+/ke:branchfix 42 43                     /ke:branchfix 51
+        │                                       │
+        └── /ke:branchfix 44                    └── /ke:branchfix 52
+                │                                       │
+                └── /ke:branchfix 45                    │
+                        │                               │
+                        └───────────┬───────────────────┘
+                                    │
+                            /ke:branchfix 99    # ←45, ←52 (depends on both tracks)
+```
+
+**Reading converging tracks:**
+- Two parallel tracks run in separate terminals until they converge
+- The converging issue (#99) waits for BOTH tracks to complete and merge to main
+- After both tracks finish, run the final command in either terminal
+
 **Formatting rules:**
 1. Use `│`, `├──`, and `└──` box-drawing characters
 2. Group issues on one line when they have no file overlap and their dependencies are all satisfied by the same parent (they will run sequentially in one worktree)

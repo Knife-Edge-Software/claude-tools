@@ -92,7 +92,7 @@ Write-Host "  Right pane: shell -> $worktreePath" -ForegroundColor Gray
 # Launch Windows Terminal
 # -w 0: new tab in most recent window
 # --title: set tab title
-# First command runs claude interactively
+# Use cmd /c to launch claude (workaround for Bun argument parsing crash)
 # split-pane -V: vertical split (right pane)
-# Using -EncodedCommand to avoid semicolon parsing issues with wt
-wt -w 0 new-tab --title "$tabTitle" --suppressApplicationTitle -d "$currentDir" -- claude --dangerously-skip-permissions "/ke:branchfix $issueList" `; split-pane -V --suppressApplicationTitle -d "$currentDir" -- powershell -NoExit -EncodedCommand $encodedScript
+# Using -EncodedCommand for right pane to avoid escaping issues
+wt -w 0 new-tab --title "$tabTitle" --suppressApplicationTitle -d "$currentDir" -- cmd /c "claude --dangerously-skip-permissions `"/ke:branchfix $issueList`"" `; split-pane -V --suppressApplicationTitle -d "$currentDir" -- powershell -NoExit -EncodedCommand $encodedScript

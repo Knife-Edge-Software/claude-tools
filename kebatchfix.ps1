@@ -85,6 +85,12 @@ Write-Host 'Ready! Run: npm run rundev' -ForegroundColor Green
 "@
 $encodedScript = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($waitScript))
 
+# Build claude script for left pane
+$claudeScript = @"
+& claude --dangerously-skip-permissions '/ke:branchfix $issueList'
+"@
+$encodedClaudeScript = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($claudeScript))
+
 Write-Host "Launching Windows Terminal tab: $tabTitle" -ForegroundColor Cyan
 Write-Host "  Left pane:  claude /ke:branchfix $issueList" -ForegroundColor Gray
 Write-Host "  Right pane: shell -> $worktreePath" -ForegroundColor Gray
@@ -92,7 +98,7 @@ Write-Host "  Right pane: shell -> $worktreePath" -ForegroundColor Gray
 # Launch Windows Terminal
 # -w 0: new tab in most recent window
 # --title: set tab title
-# Use cmd /c to launch claude (workaround for Bun argument parsing crash)
+# Use encoded script for left pane to avoid quoting issues (cmd /c works around Bun crash)
 # split-pane -V: vertical split (right pane)
-# Using -EncodedCommand for right pane to avoid escaping issues
-wt -w 0 new-tab --title "$tabTitle" --suppressApplicationTitle -d "$currentDir" -- cmd /c "claude --dangerously-skip-permissions `"/ke:branchfix $issueList`"" `; split-pane -V --suppressApplicationTitle -d "$currentDir" -- powershell -NoExit -EncodedCommand $encodedScript
+# Using -EncodedCommand for both panes to avoid escaping issues
+wt -w 0 new-tab --title "$tabTitle" --suppressApplicationTitle -d "$currentDir" -- powershell -NoExit -EncodedCommand $encodedClaudeScript `; split-pane -V --suppressApplicationTitle -d "$currentDir" -- powershell -NoExit -EncodedCommand $encodedScript

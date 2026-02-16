@@ -203,7 +203,13 @@ Each issue will be implemented in its own worktree. Use /ke:close <issue-number>
 
 ### Step 3: Change to Worktree Directory
 
-Change the working directory to the new worktree before making any changes.
+**CRITICAL:** All file operations for this issue MUST happen inside the worktree directory, NOT the original repo.
+
+1. Determine the **absolute worktree path** (e.g., `C:\dev\github\myapp-issue-42` or `/projects/myapp-issue-42`)
+2. Change the working directory to the worktree: `cd <absolute-worktree-path>`
+3. Verify you are in the correct directory with `pwd` and `git branch --show-current`
+4. **For ALL subsequent Bash commands**, prefix with `cd <absolute-worktree-path> &&` to ensure you stay in the worktree, since the shell does not persist directory changes between tool calls
+5. **For ALL file Read/Edit/Write operations**, use absolute paths rooted in the worktree directory (e.g., `<worktree-path>/src/main.ts`, NOT `src/main.ts`)
 
 ### Step 4: Implement the Solution
 
@@ -222,16 +228,24 @@ Implementation plans often have multiple phases (e.g., "Phase 1: Backend", "Phas
 - Do NOT stop after one phase unless the user interrupts
 
 **4c. Make the code changes:**
+- **IMPORTANT:** Before making changes, verify you are operating in the worktree by running `cd <absolute-worktree-path> && pwd && git branch --show-current`. If the branch or path is wrong, `cd` back to the worktree before continuing.
+- Use absolute paths (rooted in the worktree) for all file Read/Edit/Write operations
 - Make all necessary code changes in the worktree
 - Follow existing patterns and conventions in the codebase
 - Keep changes focused on what the plan specifies
 
 ### Step 5: Commit and Update the Issue
 
-**Commit the changes** for this issue before posting the completion comment:
+**Commit the changes** for this issue before posting the completion comment.
+
+First, verify you are in the worktree:
 ```bash
-git add -A
-git commit -m "Fix #<issue-number>: <brief description>"
+cd <absolute-worktree-path> && git branch --show-current
+```
+
+Then commit:
+```bash
+cd <absolute-worktree-path> && git add -A && git commit -m "Fix #<issue-number>: <brief description>"
 ```
 
 **Post a completion comment** on the issue using `gh issue comment`:
@@ -288,6 +302,7 @@ After updating the issue, ask the user to review the changes before committing.
 
 ### Important
 
+- **WORKTREE SAFETY:** ALL file operations and git commands MUST target the worktree directory, not the original repo. Use absolute paths and prefix Bash commands with `cd <absolute-worktree-path> &&`. If you are ever unsure which directory you are in, run `pwd && git branch --show-current` to verify before making changes.
 - **DO commit** after each issue is complete (creates checkpoints for rollback)
 - Do NOT push any changes (that happens in /ke:close)
 - **Implement ALL phases from the plan** - do not stop after completing just one phase

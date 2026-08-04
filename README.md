@@ -6,6 +6,8 @@ Small command-line workflows for implementing, independently reviewing, and clos
 
 These PowerShell scripts live together in this repository and are intended to be placed on `PATH`. Start each issue batch from the original repository checkout:
 
+For the complete lifecycle, pane responsibilities, review guarantees, QA handoff, cleanup safeguards, and recovery procedures, see [Agent Worktree Workflow](docs/agent-worktree-workflow.md).
+
 ```powershell
 # Create issue-42 in ../repo-issue-42 and open three side-by-side panes
 kebatchfix-codex 42

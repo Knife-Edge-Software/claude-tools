@@ -1,8 +1,51 @@
-# Knife Edge Claude Tools
+# Knife Edge Agent Tools
+
+Small command-line workflows for implementing, independently reviewing, and closing GitHub issue work. The existing Claude Code plugin remains available for the legacy `/ke:*` commands.
+
+## Agent Worktree Workflow
+
+These PowerShell scripts live together in this repository and are intended to be placed on `PATH`. Run them from the original repository checkout, not from an issue worktree.
+
+```powershell
+# Create issue-42 in ../repo-issue-42 and launch Codex plus a setup shell
+kebatchfix-codex 42
+
+# Review Codex's commits with Claude and approve the exact reviewed HEAD
+kereview 42
+
+# Merge into the recorded base branch, push, close the issue, and clean up
+keclose 42
+```
+
+Multiple related issues can share one branch and worktree:
+
+```powershell
+kebatchfix-codex 42 43 44
+kereview 42
+keclose 42 43 44
+```
+
+Claude is the default cross-model reviewer. Codex's native reviewer is also available:
+
+```powershell
+kereview 42 -With Codex
+```
+
+Review approval is recorded against the exact branch commit under the repository's shared Git metadata. `keclose` refuses to continue if commits changed after approval. `-SkipReview` explicitly bypasses that gate; `-Yes` skips only the final confirmation prompt.
+
+### Agent Workflow Requirements
+
+- Git 2.x+
+- [GitHub CLI](https://cli.github.com/) authenticated with `gh auth login`
+- [Codex CLI](https://developers.openai.com/codex/cli/)
+- Claude Code when using the default Claude reviewer
+- Windows Terminal for `kebatchfix-codex.ps1`
+
+## Legacy Claude Code Plugin
 
 A Claude Code plugin for the Knife Edge Software team providing issue management commands.
 
-## Installation
+### Installation
 
 Run these commands in Claude Code:
 
@@ -20,7 +63,7 @@ Then enable auto-updates so you always have the latest version:
 
 That's it! The `/ke:plan`, `/ke:fix`, and other commands are now available.
 
-## Commands
+### Commands
 
 All commands use the `ke:` namespace prefix.
 

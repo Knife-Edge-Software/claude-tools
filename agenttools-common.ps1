@@ -46,6 +46,8 @@ function ConvertTo-AgentToolIssueNumbers {
 }
 
 function Get-AgentToolRepositoryContext {
+    param([switch]$RequirePrimary)
+
     Assert-AgentToolCommand git
 
     $rootOutput = & git rev-parse --show-toplevel 2>$null
@@ -88,8 +90,16 @@ function Get-AgentToolRepositoryContext {
     }
 
     $primaryRoot = $worktrees[0].Path
-    if (-not $currentRoot.Equals($primaryRoot, [StringComparison]::OrdinalIgnoreCase)) {
+    $isPrimary = $currentRoot.Equals($primaryRoot, [StringComparison]::OrdinalIgnoreCase)
+    if ($RequirePrimary -and -not $isPrimary) {
         throw "Run this command from the original checkout at '$primaryRoot', not from linked worktree '$currentRoot'."
+    }
+
+    $currentWorktree = @($worktrees | Where-Object {
+        $_.Path.Equals($currentRoot, [StringComparison]::OrdinalIgnoreCase)
+    } | Select-Object -First 1)
+    if ($currentWorktree.Count -eq 0) {
+        throw "Current checkout '$currentRoot' was not found in 'git worktree list'."
     }
 
     $commonDirOutput = (& git -C $primaryRoot rev-parse --git-common-dir).Trim()
@@ -99,6 +109,9 @@ function Get-AgentToolRepositoryContext {
 
     return [pscustomobject]@{
         Root = $primaryRoot
+        CurrentRoot = $currentRoot
+        CurrentWorktree = $currentWorktree[0]
+        IsPrimary = $isPrimary
         CommonGitDir = Resolve-AgentToolGitPath -RepositoryRoot $primaryRoot -GitPath $commonDirOutput
         Worktrees = $worktrees.ToArray()
     }
@@ -147,6 +160,45 @@ function Get-AgentToolReviewStatePath {
     )
 
     return Join-Path (Join-Path (Get-AgentToolStateDirectory $Context) 'reviews') "issue-$Issue.json"
+}
+
+function Get-AgentToolIssueMetadata {
+    param(
+        [Parameter(Mandatory)]$Context,
+        [Parameter(Mandatory)][string]$Issue
+    )
+
+    $path = Get-AgentToolIssueMetadataPath -Context $Context -Issue $Issue
+    if (-not (Test-Path -LiteralPath $path)) {
+        return $null
+    }
+
+    try {
+        return Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+    }
+    catch {
+        throw "Issue metadata is unreadable: $path"
+    }
+}
+
+function Get-AgentToolCurrentIssueNumber {
+    param([Parameter(Mandatory)]$Context)
+
+    $branch = $Context.CurrentWorktree.Branch
+    if (-not $branch -or $branch -notmatch '^issue-(\d+)$') {
+        throw "Current checkout is not on an issue branch. Supply an issue number explicitly."
+    }
+
+    return $Matches[1]
+}
+
+function Get-AgentToolLockDirectory {
+    param(
+        [Parameter(Mandatory)]$Context,
+        [Parameter(Mandatory)][string]$Issue
+    )
+
+    return Join-Path (Join-Path (Get-AgentToolStateDirectory $Context) 'locks') "issue-$Issue"
 }
 
 function Write-AgentToolJson {

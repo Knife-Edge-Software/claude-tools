@@ -1,13 +1,14 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Creates an issue worktree and opens Codex plus a setup shell in Windows Terminal.
+    Creates an issue worktree and opens Codex, Claude, and PowerShell panes.
 
 .DESCRIPTION
     Creates (or resumes) a sibling worktree named <repo>-issue-<first-issue>, then
-    opens a split Windows Terminal tab:
-    - Left pane: interactive Codex, instructed to implement all issues sequentially
-    - Right pane: dependency setup followed by an interactive shell
+    opens a three-column Windows Terminal tab:
+    - Left pane: interactive Codex implementing the issues
+    - Middle pane: interactive Claude for conversational review and QA handoff
+    - Right pane: dependency setup followed by an interactive control shell
 
     The worktree is created by PowerShell rather than by the coding agent. This
     keeps worktree setup deterministic and lets Codex start in the correct root.
@@ -45,6 +46,7 @@ function Quote-PowerShellLiteral {
 Assert-Command git
 Assert-Command gh
 Assert-Command codex
+Assert-Command claude
 Assert-Command wt
 
 if (-not $Issues -or $Issues.Count -eq 0) {
@@ -80,6 +82,21 @@ if ($LASTEXITCODE -ne 0 -or -not $repoRootOutput) {
 }
 
 $repoRoot = [IO.Path]::GetFullPath(($repoRootOutput | Select-Object -First 1).Trim())
+
+# Finalized worktrees are retained while their model panes are open. Clean any
+# prior finalized worktrees whose panes have since closed before starting more
+# issue work.
+$cleanupScriptPath = Join-Path $PSScriptRoot 'kecleanup.ps1'
+if (Test-Path -LiteralPath $cleanupScriptPath) {
+    Push-Location $repoRoot
+    try {
+        & $cleanupScriptPath -Quiet
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 $repoName = Split-Path -Leaf $repoRoot
 $parentDir = Split-Path -Parent $repoRoot
 $baseBranch = (& git -C $repoRoot branch --show-current).Trim()
@@ -172,6 +189,7 @@ if ($createdWorktree -or -not (Test-Path -LiteralPath $issueMetadataPath)) {
         worktree = $worktreePath
         base_branch = $baseBranch
         base_head = $baseHead
+        status = 'active'
         created_at_utc = [DateTime]::UtcNow.ToString('o')
     }
     $issueMetadataJson = $issueMetadata | ConvertTo-Json -Depth 5
@@ -196,16 +214,44 @@ Continue through all requested issues unless blocked. Do not push, merge, remove
 $promptBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($prompt))
 $quotedWorktree = Quote-PowerShellLiteral $worktreePath
 
+$claudePrompt = @"
+You are the independent reviewer and second collaborator for GitHub issues $issueReferences in worktree $worktreePath on branch $branchName, based on $baseBranch.
+
+Stay conversational and wait for me to direct the review. When reviewing, read the issues and implementation plans, inspect the complete $baseBranch...HEAD change, run relevant checks, and report actionable correctness, regression, security, and test-coverage findings. Do not modify code unless I ask you to help fix something. You may use the GitHub CLI when I ask you to add a QA test plan, reopen an issue, or change its assignee.
+
+The Codex pane is implementing the work. The PowerShell pane can run parameterless `keclose` from this worktree after we agree the exact HEAD is ready.
+"@
+$claudePromptBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($claudePrompt))
+
+$lockDirectory = Join-Path (Join-Path (Join-Path $gitCommonDir 'agenttools') 'locks') "issue-$firstIssue"
+[IO.Directory]::CreateDirectory($lockDirectory) | Out-Null
+$quotedCodexLock = Quote-PowerShellLiteral (Join-Path $lockDirectory 'codex.lock')
+$quotedClaudeLock = Quote-PowerShellLiteral (Join-Path $lockDirectory 'claude.lock')
+$quotedShellLock = Quote-PowerShellLiteral (Join-Path $lockDirectory 'powershell.lock')
+
 $codexScript = @"
+`$global:AgentToolsPaneLock = [IO.File]::Open($quotedCodexLock, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
+`$env:AGENTTOOLS_ISSUE = '$firstIssue'
 `$prompt = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$promptBase64'))
 & codex -C $quotedWorktree --yolo `$prompt
 "@
 $encodedCodexScript = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($codexScript))
 
+$claudeScript = @"
+`$global:AgentToolsPaneLock = [IO.File]::Open($quotedClaudeLock, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
+`$env:AGENTTOOLS_ISSUE = '$firstIssue'
+`$prompt = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$claudePromptBase64'))
+& claude --dangerously-skip-permissions `$prompt
+"@
+$encodedClaudeScript = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($claudeScript))
+
 $setupScript = @"
+`$global:AgentToolsPaneLock = [IO.File]::Open($quotedShellLock, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
+`$env:AGENTTOOLS_ISSUE = '$firstIssue'
 Set-Location $quotedWorktree
 Write-Host 'Worktree ready: $worktreePath' -ForegroundColor Green
 Write-Host 'Branch: $branchName' -ForegroundColor Green
+Write-Host 'Issues: $issueReferences' -ForegroundColor Green
 
 if (Test-Path -LiteralPath 'package.json') {
     Write-Host ''
@@ -231,6 +277,8 @@ if (Test-Path -LiteralPath 'src-tauri/Cargo.toml') {
 
 Write-Host ''
 Write-Host 'Setup complete. This shell is in the issue worktree.' -ForegroundColor Green
+Write-Host 'After conversational review, run: keclose' -ForegroundColor Cyan
+Write-Host 'Optional automated review remains available as: kereview' -ForegroundColor Gray
 "@
 $encodedSetupScript = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($setupScript))
 
@@ -240,8 +288,8 @@ Write-Host "  Branch:   $branchName" -ForegroundColor Gray
 Write-Host "  Base:     $baseBranch" -ForegroundColor Gray
 Write-Host "  Issues:   $issueList" -ForegroundColor Gray
 Write-Host "  Left:     Codex (interactive, --yolo)" -ForegroundColor Gray
-Write-Host "  Right:    dependency setup shell" -ForegroundColor Gray
-Write-Host "  Review:   kereview $firstIssue" -ForegroundColor Gray
-Write-Host "  Close:    keclose $($allIssues -join ' ')" -ForegroundColor Gray
+Write-Host "  Middle:   Claude (interactive reviewer)" -ForegroundColor Gray
+Write-Host "  Right:    dependency setup and control shell" -ForegroundColor Gray
+Write-Host "  Finalize: keclose (no arguments, from the worktree shell)" -ForegroundColor Gray
 
-wt -w 0 new-tab --title $tabTitle --suppressApplicationTitle -d $worktreePath -- powershell -NoExit -EncodedCommand $encodedCodexScript `; split-pane -V --suppressApplicationTitle -d $worktreePath -- powershell -NoExit -EncodedCommand $encodedSetupScript
+wt -w 0 new-tab --title $tabTitle --suppressApplicationTitle -d $worktreePath -- powershell -NoExit -EncodedCommand $encodedCodexScript `; split-pane -V --size .67 --suppressApplicationTitle -d $worktreePath -- powershell -NoExit -EncodedCommand $encodedClaudeScript `; split-pane -V --size .5 --suppressApplicationTitle -d $worktreePath -- powershell -NoExit -EncodedCommand $encodedSetupScript

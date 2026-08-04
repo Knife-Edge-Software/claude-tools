@@ -4,34 +4,51 @@ Small command-line workflows for implementing, independently reviewing, and clos
 
 ## Agent Worktree Workflow
 
-These PowerShell scripts live together in this repository and are intended to be placed on `PATH`. Run them from the original repository checkout, not from an issue worktree.
+These PowerShell scripts live together in this repository and are intended to be placed on `PATH`. Start each issue batch from the original repository checkout:
 
 ```powershell
-# Create issue-42 in ../repo-issue-42 and launch Codex plus a setup shell
+# Create issue-42 in ../repo-issue-42 and open three side-by-side panes
 kebatchfix-codex 42
-
-# Review Codex's commits with Claude and approve the exact reviewed HEAD
-kereview 42
-
-# Merge into the recorded base branch, push, close the issue, and clean up
-keclose 42
 ```
 
-Multiple related issues can share one branch and worktree:
+The tab contains:
+
+- Codex implementing the issues with `--yolo`
+- Claude available for conversational review and QA handoff
+- PowerShell running dependency setup and serving as the control shell
+
+After Codex finishes, ask Claude to review the exact branch HEAD. Resolve any findings, then run this from the worktree PowerShell pane:
+
+```powershell
+keclose
+```
+
+No issue numbers are required. `keclose` infers the branch, complete issue batch, worktree, and base branch from repository metadata. It confirms conversational review, merges and pushes, then offers three issue dispositions:
+
+1. Close as resolved
+2. Keep open for QA, optionally assigning a tester
+3. Leave issue state unchanged
+
+The worktree remains in place so both model conversations can continue after the merge. Once the tab is closed, cleanup happens safely on the next `kebatchfix-codex` run. It can also be requested manually from the original checkout:
+
+```powershell
+kecleanup
+```
+
+Multiple related issues share one branch, worktree, review, and parameterless close flow:
 
 ```powershell
 kebatchfix-codex 42 43 44
-kereview 42
-keclose 42 43 44
 ```
 
-Claude is the default cross-model reviewer. Codex's native reviewer is also available:
+The non-interactive reviewer remains available as an optional fallback. It can also infer context when run from the worktree:
 
 ```powershell
-kereview 42 -With Codex
+kereview                 # Claude ultrareview
+kereview -With Codex     # Codex native reviewer
 ```
 
-Review approval is recorded against the exact branch commit under the repository's shared Git metadata. `keclose` refuses to continue if commits changed after approval. `-SkipReview` explicitly bypasses that gate; `-Yes` skips only the final confirmation prompt.
+Automated or conversational approval is recorded against the exact branch commit under the repository's shared Git metadata. If commits change afterward, `keclose` requires review confirmation again.
 
 ### Agent Workflow Requirements
 

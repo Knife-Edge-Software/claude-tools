@@ -4,9 +4,9 @@
     Reviews an issue worktree and records approval for its exact HEAD commit.
 
 .DESCRIPTION
-    Run from the original repository checkout. The issue number locates the
-    issue-<number> branch and its registered worktree. Claude is the default
-    reviewer so Codex-authored changes receive a cross-model review.
+    Run with no arguments from an issue worktree, or provide an issue number
+    from the original checkout. Claude is the default reviewer so Codex-authored
+    changes receive a cross-model review.
 
 .EXAMPLE
     kereview 42
@@ -15,7 +15,7 @@
 #>
 
 param(
-    [Parameter(Mandatory, Position=0)]
+    [Parameter(Position=0)]
     [string]$Issue,
 
     [Parameter()]
@@ -34,24 +34,20 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'agenttools-common.ps1')
 
-$issueNumbers = @(ConvertTo-AgentToolIssueNumbers @($Issue))
-$issueNumber = $issueNumbers[0]
 $context = Get-AgentToolRepositoryContext
+if ($Issue) {
+    $issueNumber = @(ConvertTo-AgentToolIssueNumbers @($Issue))[0]
+}
+else {
+    $issueNumber = Get-AgentToolCurrentIssueNumber -Context $context
+}
 $worktree = Get-AgentToolIssueWorktree -Context $context -Issue $issueNumber
 $branchName = $worktree.Branch
 
 if (-not $BaseBranch) {
-    $metadataPath = Get-AgentToolIssueMetadataPath -Context $context -Issue $issueNumber
-    if (Test-Path -LiteralPath $metadataPath) {
-        try {
-            $metadata = Get-Content -Raw -LiteralPath $metadataPath | ConvertFrom-Json
-            if ($metadata.base_branch) {
-                $BaseBranch = $metadata.base_branch
-            }
-        }
-        catch {
-            Write-Warning "Ignoring unreadable issue metadata at '$metadataPath'."
-        }
+    $metadata = Get-AgentToolIssueMetadata -Context $context -Issue $issueNumber
+    if ($metadata -and $metadata.base_branch) {
+        $BaseBranch = $metadata.base_branch
     }
 }
 if (-not $BaseBranch) {

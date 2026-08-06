@@ -82,6 +82,46 @@ if ($LASTEXITCODE -ne 0 -or -not $repoRootOutput) {
 }
 
 $repoRoot = [IO.Path]::GetFullPath(($repoRootOutput | Select-Object -First 1).Trim())
+$repoName = Split-Path -Leaf $repoRoot
+$parentDir = Split-Path -Parent $repoRoot
+
+# Git records absolute paths for linked worktrees. If the repository's parent
+# directory was renamed or moved, repair sibling worktrees before attempting to
+# enumerate them or run cleanup.
+$worktreeListProbe = @(& git -C $repoRoot worktree list --porcelain 2>$null)
+if ($LASTEXITCODE -ne 0) {
+    $gitDirectory = (& git -C $repoRoot rev-parse --absolute-git-dir).Trim()
+    if ($LASTEXITCODE -ne 0 -or -not $gitDirectory) {
+        Write-Error "Unable to resolve the repository's Git metadata directory."
+        exit 1
+    }
+
+    $repairPaths = @(
+        Get-ChildItem -LiteralPath (Join-Path $gitDirectory 'worktrees') -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object { Join-Path $parentDir $_.Name } |
+            Where-Object { Test-Path -LiteralPath (Join-Path $_ '.git') }
+    )
+
+    & git -C $repoRoot worktree repair @repairPaths
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Unable to repair Git worktree paths after the repository was moved."
+        exit 1
+    }
+
+    # Entries whose worktrees no longer exist can retain absolute paths to the
+    # old location and prevent Git from listing otherwise healthy worktrees.
+    & git -C $repoRoot worktree prune
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Unable to prune stale Git worktree metadata."
+        exit 1
+    }
+
+    $worktreeListProbe = @(& git -C $repoRoot worktree list --porcelain 2>$null)
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Git worktree metadata is still invalid after repair."
+        exit 1
+    }
+}
 
 # Finalized worktrees are retained while their model panes are open. Clean any
 # prior finalized worktrees whose panes have since closed before starting more
@@ -97,8 +137,6 @@ if (Test-Path -LiteralPath $cleanupScriptPath) {
     }
 }
 
-$repoName = Split-Path -Leaf $repoRoot
-$parentDir = Split-Path -Parent $repoRoot
 $baseBranch = (& git -C $repoRoot branch --show-current).Trim()
 if ($LASTEXITCODE -ne 0 -or -not $baseBranch) {
     Write-Error "The original checkout must be on a branch before creating issue work."

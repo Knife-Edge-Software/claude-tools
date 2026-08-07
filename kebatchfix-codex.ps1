@@ -239,7 +239,7 @@ Implement GitHub issues $issueReferences sequentially in this dedicated worktree
 
 For each issue:
 1. Read the complete issue and all comments with `gh issue view <number> --comments`.
-2. Find the implementation plan and identify every phase before changing code. If the plan is missing or materially unclear, ask me before implementing that issue.
+2. Find the implementation plan in the issue body or comments and identify every phase before changing code. Treat sufficiently detailed implementation steps or requirements in the issue body as the plan, even if they are not labeled "implementation plan" or repeated in a separate comment. Do not ask me to confirm that the issue body suffices; ask only if the issue body and comments together are missing a usable plan or are materially unclear.
 3. Read and follow all applicable repository instructions, including AGENTS.md files.
 4. Implement every phase, following existing project patterns. Keep unrelated changes untouched.
 5. Run the most relevant focused tests and checks, then inspect the final diff.

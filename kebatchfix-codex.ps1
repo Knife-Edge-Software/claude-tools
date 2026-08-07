@@ -271,7 +271,10 @@ $codexScript = @"
 `$global:AgentToolsPaneLock = [IO.File]::Open($quotedCodexLock, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
 `$env:AGENTTOOLS_ISSUE = '$firstIssue'
 `$prompt = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$promptBase64'))
-& codex -C $quotedWorktree --yolo `$prompt
+# Windows PowerShell uses legacy native argument quoting. Escape embedded quotes
+# so the npm shim forwards the complete prompt as one argument to Codex.
+`$codexPrompt = `$prompt.Replace('"', '\"')
+& codex -C $quotedWorktree --yolo `$codexPrompt
 "@
 $encodedCodexScript = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($codexScript))
 

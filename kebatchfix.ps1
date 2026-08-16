@@ -24,10 +24,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Validate we're in a git repo
-if (-not (Test-Path ".git")) {
-    Write-Error "Must be run from a git repository root"
+$repoRootOutput = & git rev-parse --show-toplevel 2>$null
+if ($LASTEXITCODE -ne 0 -or -not $repoRootOutput) {
+    Write-Error "Must be run from inside a git repository"
     exit 1
 }
+$repoRoot = [IO.Path]::GetFullPath(($repoRootOutput | Select-Object -First 1).Trim())
 
 # Validate we have issues
 if (-not $Issues -or $Issues.Count -eq 0) {
@@ -50,18 +52,50 @@ if (-not $firstIssue -or $firstIssue -notmatch '^\d+$') {
 }
 
 # Compute paths
-$repoName = Split-Path -Leaf (Get-Location)
-$parentDir = Split-Path (Get-Location)
-$worktreePath = Join-Path $parentDir "$repoName-issue-$firstIssue"
+$repoName = Split-Path -Leaf $repoRoot
+$parentDir = Split-Path -Parent $repoRoot
+$branchName = "issue-$firstIssue"
+$expectedWorktree = Join-Path $parentDir "$repoName-issue-$firstIssue"
 $tabTitle = "#$firstIssue"
-$currentDir = (Get-Location).Path
+$currentDir = $repoRoot
 
 # Build wait script for right pane (base64 encoded to avoid escaping issues)
+#
+# The worktree is created by Claude, so its location cannot be assumed. Ask Git
+# where the branch was actually checked out instead of polling a guessed path:
+# a worktree placed anywhere (for example under .claude/worktrees/) is still
+# found, and the pane reports the discrepancy rather than waiting forever.
 $waitScript = @"
-Write-Host 'Waiting for worktree: $worktreePath' -ForegroundColor Cyan
-while (-not (Test-Path '$worktreePath')) { Start-Sleep -Seconds 2 }
-Write-Host 'Worktree found!' -ForegroundColor Green
-Set-Location '$worktreePath'
+`$repoRoot = '$repoRoot'
+`$branchName = '$branchName'
+`$expectedWorktree = '$expectedWorktree'
+
+Write-Host "Waiting for a worktree on branch `$branchName..." -ForegroundColor Cyan
+Write-Host "Expected location: `$expectedWorktree" -ForegroundColor DarkGray
+
+`$worktreePath = `$null
+while (-not `$worktreePath) {
+    `$candidate = `$null
+    foreach (`$line in @(& git -C `$repoRoot worktree list --porcelain 2>`$null)) {
+        if (`$line -like 'worktree *') {
+            `$candidate = `$line.Substring(9)
+        }
+        elseif (`$line -eq "branch refs/heads/`$branchName") {
+            `$worktreePath = [IO.Path]::GetFullPath(`$candidate)
+            break
+        }
+    }
+    if (-not `$worktreePath) { Start-Sleep -Seconds 2 }
+}
+
+if (`$worktreePath -ne [IO.Path]::GetFullPath(`$expectedWorktree)) {
+    Write-Host "Worktree found at an unexpected location: `$worktreePath" -ForegroundColor Yellow
+    Write-Host "Expected a sibling directory: `$expectedWorktree" -ForegroundColor Yellow
+}
+else {
+    Write-Host "Worktree found: `$worktreePath" -ForegroundColor Green
+}
+Set-Location -LiteralPath `$worktreePath
 
 Write-Host ''
 Write-Host 'Running npm install...' -ForegroundColor Cyan
@@ -93,7 +127,7 @@ $encodedClaudeScript = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetByt
 
 Write-Host "Launching Windows Terminal tab: $tabTitle" -ForegroundColor Cyan
 Write-Host "  Left pane:  claude /ke:branchfix $issueList" -ForegroundColor Gray
-Write-Host "  Right pane: shell -> $worktreePath" -ForegroundColor Gray
+Write-Host "  Right pane: shell -> worktree on branch $branchName (expected $expectedWorktree)" -ForegroundColor Gray
 
 # Launch Windows Terminal
 # -w 0: new tab in most recent window

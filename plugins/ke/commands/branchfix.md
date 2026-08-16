@@ -119,6 +119,14 @@ git worktree list | grep "issue-<issue-number>"
 
 Create a new branch and worktree for this issue:
 
+**Worktree location (required):**
+
+Worktrees MUST be created as a **sibling directory of the repository root**, named `<repo-name>-issue-<issue-number>`. Tooling that wraps this command (for example `kebatchfix`) reports this location to the user, so it must not vary.
+
+- Do NOT use Claude Code's built-in worktree feature (the `EnterWorktree` tool or `/worktree`) for this command — it places worktrees under `.claude/worktrees/`, which is the wrong location here.
+- Do NOT create the worktree anywhere inside the repository, including `.claude/worktrees/`.
+- Do NOT infer the location from `git worktree list`. If existing worktrees in this repository sit somewhere else, they were misplaced; still create the new one as a sibling and tell the user about the inconsistency.
+
 **Determine the base branch:**
 - If `--from <branch>` is specified, use that branch as the base
 - Otherwise, use the current branch (usually `main` or `master`)
